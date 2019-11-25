@@ -3,9 +3,8 @@ package com.walkmind.extensions.collections
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
-class MapBasedSequence<T> constructor(private val map: LinkedMap<Long, T>, private val iteratorModeDistance: Int, private val discardThreshold: Int) : SimpleSequence<T>, Iterator<T>, AutoCloseable {
+class MapBasedSequence<T> constructor(private val map: LinkedMap<Long, T>, private val iteratorModeDistance: Int, private val discardThreshold: Int) : SimpleSequence<T>, AutoCloseable {
 
-    private val lock = ReentrantLock()
     private var nextWriteSeqNo: Long
 
     private var readerIt: CloseablePeekingIterator<Pair<Long, T>>
@@ -37,93 +36,84 @@ class MapBasedSequence<T> constructor(private val map: LinkedMap<Long, T>, priva
     }
 
     override fun addAll(elements: Collection<T>) {
-        lock.withLock {
-            map.putAll(elements.mapIndexed { index, t ->
-                Pair(nextWriteSeqNo + index, t)
-            })
-            nextWriteSeqNo += elements.size
-            dirty = true
-            trySwitchingToIterMode()
-        }
+        map.putAll(elements.mapIndexed { index, t ->
+            Pair(nextWriteSeqNo + index, t)
+        })
+        nextWriteSeqNo += elements.size
+        dirty = true
+        trySwitchingToIterMode()
     }
 
     override fun clear() {
-        lock.withLock {
-            map.clear()
+        map.clear()
 
-            nextReadSeqNo = 1
-            nextWriteSeqNo = 1
-            dirty = true
-            useIterator = false;
-        }
+        nextReadSeqNo = 1
+        nextWriteSeqNo = 1
+        dirty = true
+        useIterator = false
     }
 
     override fun isEmpty(): Boolean {
-        lock.withLock {
-            if (useIterator) {
-                refreshReaderIterator()
-                return !readerIt.hasNext()
-            } else
-                return nextReadSeqNo == nextWriteSeqNo
-        }
+        if (useIterator) {
+            refreshReaderIterator()
+            return !readerIt.hasNext()
+        } else
+            return nextReadSeqNo == nextWriteSeqNo
     }
 
     override fun add(element: T) {
-        lock.withLock {
-            map.put(nextWriteSeqNo++, element)
-            dirty = true
-            trySwitchingToIterMode()
-        }
+        map.put(nextWriteSeqNo++, element)
+        dirty = true
+        trySwitchingToIterMode()
     }
 
     override fun peek(): T? {
-        lock.withLock {
+        if (nextReadSeqNo < nextWriteSeqNo) {
+            if (useIterator) {
+                refreshReaderIterator()
 
-            if (nextReadSeqNo < nextWriteSeqNo) {
-                if (useIterator) {
-                    refreshReaderIterator()
-
-                    return if (readerIt.hasNext())
-                        readerIt.peek().second
-                    else
-                        null
-                } else
-                    return map.get(nextReadSeqNo)
+                return if (readerIt.hasNext())
+                    readerIt.peek().second
+                else
+                    null
             } else
-                return null
-        }
+                return map.get(nextReadSeqNo)
+        } else
+            return null
     }
 
     override fun pop(): T? {
-        lock.withLock {
+        if (nextReadSeqNo < nextWriteSeqNo) {
+            val result = if (useIterator) {
+                refreshReaderIterator()
 
-            if (nextReadSeqNo < nextWriteSeqNo) {
-                val result = if (useIterator) {
-                    refreshReaderIterator()
+                if (readerIt.hasNext()) {
+                    val (key, value) = readerIt.next()
+                    assert(nextReadSeqNo == key)
+                    nextReadSeqNo++
 
-                    if (readerIt.hasNext()) {
-                        val (key, value) = readerIt.next()
-                        assert(nextReadSeqNo == key)
-                        nextReadSeqNo++
+                    // This iterator is finished but perhaps there is more data
+                    if (!readerIt.hasNext())
+                        dirty = true
 
-                        // This iterator is finished but perhaps there is more data
-                        if (!readerIt.hasNext())
-                            dirty = true
-
-                        value
-                    } else
-                        null
-                } else {
-                    val value = map.get(nextReadSeqNo)
                     value
-                }
+                } else
+                    null
+            } else {
+                val value = map.get(nextReadSeqNo)
+                value
+            }
 
-                tryDisablingIterMode()
-                discardReadItems()
-                return result
-            } else
-                return null
-        }
+            tryDisablingIterMode()
+            discardReadItems()
+            return result
+        } else
+            return null
+    }
+
+    override fun close() {
+        readerIt.close()
+        discardReadItems(true)
     }
 
     // Disable iterator mode if sequence is empty
@@ -144,17 +134,50 @@ class MapBasedSequence<T> constructor(private val map: LinkedMap<Long, T>, priva
             firstReadSeqNo = nextReadSeqNo + 1
         }
     }
+}
+
+class SynchronizedMapBasedSequence<T> constructor(private val delegate: MapBasedSequence<T>) : SimpleSequence<T>, AutoCloseable {
+    private val lock = ReentrantLock()
+
+    override fun addAll(elements: Collection<T>) {
+        lock.withLock {
+            delegate.addAll(elements)
+        }
+    }
+
+    override fun clear() {
+        lock.withLock {
+            delegate.clear()
+        }
+    }
+
+    override fun isEmpty(): Boolean {
+        lock.withLock {
+            return delegate.isEmpty()
+        }
+    }
+
+    override fun add(element: T) {
+        lock.withLock {
+            delegate.add(element)
+        }
+    }
+
+    override fun peek(): T? {
+        lock.withLock {
+            return delegate.peek()
+        }
+    }
+
+    override fun pop(): T? {
+        lock.withLock {
+            return delegate.pop()
+        }
+    }
 
     override fun close() {
-        readerIt.close()
-        discardReadItems(true)
-    }
-
-    override fun hasNext(): Boolean {
-        return !isEmpty()
-    }
-
-    override fun next(): T {
-        return pop()!!
+        lock.withLock {
+            delegate.close()
+        }
     }
 }
