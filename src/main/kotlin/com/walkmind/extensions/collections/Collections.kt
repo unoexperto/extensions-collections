@@ -1,7 +1,5 @@
 package com.walkmind.extensions.collections
 
-import java.nio.ByteBuffer
-
 interface SimpleSequence<T> {
     fun addAll(elements: Collection<T>)
     fun clear()
@@ -35,12 +33,4 @@ interface LinkedMap<K, V> {
     fun firstKey(): K?
     fun lastKey(): K?
     fun iterator(): CloseablePeekingIterator<Pair<K, V>> // Existing iterators should work after modification of the map
-}
-
-internal fun Long.toFixedArray(): ByteArray {
-    return ByteBuffer.allocate(Long.SIZE_BYTES).putLong(this).array()
-}
-
-internal fun ByteArray.asFixedLenLong(): Long {
-    return ByteBuffer.allocate(Long.SIZE_BYTES).put(this).flip().long
 }
