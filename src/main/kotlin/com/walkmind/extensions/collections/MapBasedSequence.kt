@@ -15,6 +15,8 @@ class MapBasedSequence<T> constructor(private val map: LinkedMap<Long, T>, priva
 
     private var dirty: Boolean = false
 
+    private val depletedSeqNumberException = IllegalStateException("Maximum sequence ID is reached")
+
     init {
         require(iteratorModeDistance > 0) { "iteratorModeDistance must be positive" }
         require(discardThreshold > 0) { "discardThreshold must be positive" }
@@ -36,6 +38,9 @@ class MapBasedSequence<T> constructor(private val map: LinkedMap<Long, T>, priva
     }
 
     override fun addAll(elements: Collection<T>) {
+        if (nextWriteSeqNo > Long.MAX_VALUE - elements.size)
+            throw depletedSeqNumberException
+
         map.putAll(elements.mapIndexed { index, t ->
             Pair(nextWriteSeqNo + index, t)
         })
@@ -62,6 +67,9 @@ class MapBasedSequence<T> constructor(private val map: LinkedMap<Long, T>, priva
     }
 
     override fun add(element: T) {
+        if (nextWriteSeqNo == Long.MAX_VALUE)
+            throw depletedSeqNumberException
+
         map.put(nextWriteSeqNo++, element)
         dirty = true
         trySwitchingToIterMode()
