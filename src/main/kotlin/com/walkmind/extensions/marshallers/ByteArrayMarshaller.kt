@@ -7,6 +7,7 @@ interface ByteArrayMarshaller<T> {
     fun encode(value: T): ByteArray
     fun decode(value: ByteArray): T
 
+    @JvmDefault
     fun <V>bimap(enc: (V) -> T, dec: (T) -> V): ByteArrayMarshaller<V> = object : ByteArrayMarshaller<V> {
         override fun encode(value: V): ByteArray {
             return this@ByteArrayMarshaller.encode(enc(value))
