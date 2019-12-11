@@ -108,7 +108,7 @@ class MapBasedSequence<T> constructor(private val map: LinkedMap<Long, T>, priva
                 } else
                     null
             } else {
-                val value = map.get(nextReadSeqNo)
+                val value = map.get(nextReadSeqNo++)
                 value
             }
 
