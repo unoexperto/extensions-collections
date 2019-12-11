@@ -4,7 +4,7 @@ import sbt._
 lazy val commonSettings = Seq(
   name := "collections",
   organization := "com.walkmind.extensions",
-  version := "1.0",
+  version := "1.3",
   licenses := Seq("Apache-2.0" -> url("http://opensource.org/licenses/Apache-2.0")),
   scalaVersion := "2.13.1"
 )
@@ -53,7 +53,7 @@ lazy val root = (project in file("."))
 
     scalacOptions := Seq("-g:notailcalls", "-release", "8", "-unchecked", "-deprecation", "-encoding", "utf8", "-language:implicitConversions", "-language:postfixOps", "-language:higherKinds", "-Xcheckinit"), //, "-Xlog-implicits"),
     javaOptions in compile ++= Seq("-Xmx2G"),
-    javacOptions ++= Seq("-g", "-encoding", "UTF-8", "-source", "8", "-target", "8"), // "--enable-preview"
+    javacOptions in compile ++= Seq("-g", "-encoding", "UTF-8", "-source", "8", "-target", "8"), // "--enable-preview"
     crossPaths := false,
 
     kotlinVersion := "1.3.60",
