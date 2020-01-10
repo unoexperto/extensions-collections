@@ -32,5 +32,8 @@ interface LinkedMap<K, V> {
     fun removeRange(keyFrom: K, keyTo: K)
     fun firstKey(): K?
     fun lastKey(): K?
-    fun iterator(): CloseablePeekingIterator<Pair<K, V>> // Existing iterators should work after modification of the map
+
+    // Existing iterators should work after modification of the map
+    fun iterator(): CloseablePeekingIterator<Pair<K, V>>
+    fun iterator(prefix: K): CloseablePeekingIterator<Pair<K, V>>
 }

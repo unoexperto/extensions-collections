@@ -25,7 +25,7 @@ class DefaultLevelDBComparator : DBComparator {
                 if (a1[index] != a2[index])
                     return (0xff and a1[index].toInt()) - (0xff and a2[index].toInt())
 
-            return 0;
+            return 0
         }
 //        return UnsignedBytes.lexicographicalComparator().compare(o1, o2)
     }
@@ -70,11 +70,11 @@ class DefaultLevelDBComparator : DBComparator {
         }
 
         // *key is a run of 0xffs.  Leave it alone.
-        return key;
+        return key
     }
 }
 
-class LevelDBLinkedMap<K, V>(path: File,
+class LevelDBLinkedMap<K, V>(private val path: File,
                              comparator: DBComparator?,
                              private val keyMarshaller: ByteArrayMarshaller<K>,
                              private val valueMarshaller: ByteArrayMarshaller<V>,
@@ -89,18 +89,14 @@ class LevelDBLinkedMap<K, V>(path: File,
     private val db: DB
     private val readOptions = ReadOptions().verifyChecksums(true).fillCache(false)
     private val writeOptions = WriteOptions().sync(true)
+    private val initOptions: Options = Options()
+            .blockSize(blockSize)
+            .createIfMissing(true)
+            .compressionType(CompressionType.SNAPPY)
+            .comparator(comparator)
 
     init {
-        var options =
-                Options()
-                        .blockSize(blockSize)
-                        .createIfMissing(true)
-                        .compressionType(CompressionType.SNAPPY)
-
-        if (comparator != null)
-            options = options.comparator(comparator)
-
-        db = JniDBFactory.factory.open(path, options)
+        db = JniDBFactory.factory.open(path, initOptions)
         LOG.finer("Opened DB from ${path.absolutePath}")
     }
 
@@ -176,13 +172,24 @@ class LevelDBLinkedMap<K, V>(path: File,
     }
 
     override fun iterator(): CloseablePeekingIterator<Pair<K, V>> {
+        return iteratorInternal(null)
+    }
+
+    override fun iterator(prefix: K): CloseablePeekingIterator<Pair<K, V>> {
+        return iteratorInternal(prefix)
+    }
+
+    private fun iteratorInternal(start: K?): CloseablePeekingIterator<Pair<K, V>> {
         return object : CloseablePeekingIterator<Pair<K, V>> {
             private var bytesRead = 0L
 
             private val iter = db.iterator(readOptions)
 
             init {
-                iter.seekToFirst()
+                if (start == null)
+                    iter.seekToFirst()
+                else
+                    iter.seek(keyMarshaller.encode(start))
             }
 
             override fun hasNext(): Boolean {
@@ -287,5 +294,9 @@ class LevelDBLinkedMap<K, V>(path: File,
 
     fun getProperty(name: String): String? {
         return db.getProperty(name)
+    }
+
+    fun destroy() {
+        JniDBFactory.factory.destroy(path, initOptions);
     }
 }
