@@ -10,6 +10,10 @@ import kotlin.math.min
 
 class DefaultLevelDBComparator : DBComparator {
 
+    companion object {
+        val INSTANCE = DefaultLevelDBComparator()
+    }
+
     override fun name(): String {
         return "leveldb.BytewiseComparator"
     }
@@ -79,8 +83,8 @@ class LevelDBLinkedMap<K, V>(private val path: File,
                              private val keyMarshaller: ByteArrayMarshaller<K>,
                              private val valueMarshaller: ByteArrayMarshaller<V>,
                              blockSize: Int = 64 * 1024,
-                             private val deleteBatchSize: Int = 5*1024,
-                             private val compressOnExit: Boolean = false) : LinkedMap<K, V>, Closeable {
+                             private val deleteBatchSize: Int = 5 * 1024,
+                             private val compressOnExit: Boolean = false) : LinkedMap<K, V>, Closeable, DestroyableStorage {
 
     companion object {
         private val LOG = Logger.getLogger(LevelDBLinkedMap::class.java.name)
@@ -107,7 +111,7 @@ class LevelDBLinkedMap<K, V>(private val path: File,
     override fun isEmpty(): Boolean {
         db.iterator(readOptions).use {
             it.seekToFirst()
-            return it.hasNext()
+            return !it.hasNext()
         }
     }
 
@@ -120,29 +124,33 @@ class LevelDBLinkedMap<K, V>(private val path: File,
     }
 
     override fun removeRange(keyFrom: K, keyTo: K) {
-        db.iterator(readOptions).use {
-            val byteFrom = keyMarshaller.encode(keyFrom)
-            val byteTo = keyMarshaller.encode(keyTo)
-            it.seek(byteFrom)
+        val byteFrom = keyMarshaller.encode(keyFrom)
+        val byteTo = keyMarshaller.encode(keyTo)
 
-            while (it.hasNext())
-                db.createWriteBatch().use { batch ->
-                    var count = 0
-                    while (count < deleteBatchSize && it.hasNext()) {
-                        val byteKey = it.next().key!!
-                        if (byteKey.contentEquals(byteTo)) {
-                            batch.delete(byteKey)
-                            db.write(batch, writeOptions)
-                            return
+        if (DefaultLevelDBComparator.INSTANCE.compare(byteFrom, byteTo) < 0)
+            db.iterator(readOptions).use {
+                it.seek(byteFrom)
+
+                while (it.hasNext())
+                    db.createWriteBatch().use { batch ->
+                        var count = 0
+
+                        while (count < deleteBatchSize && it.hasNext()) {
+                            val byteKey = it.next().key!!
+                            if (DefaultLevelDBComparator.INSTANCE.compare(byteKey, byteTo) < 0) {
+                                batch.delete(byteKey)
+                                count++
+                            } else {
+                                if (count > 0)
+                                    db.write(batch, writeOptions)
+                                return
+                            }
                         }
-                        batch.delete(byteKey)
-                        count++
+                        db.write(batch, writeOptions)
                     }
-                    db.write(batch, writeOptions)
-                }
 
-            db.compactRange(byteFrom, byteTo)
-        }
+                db.compactRange(byteFrom, byteTo)
+            }
     }
 
     override fun put(key: K, value: V) {
@@ -296,7 +304,7 @@ class LevelDBLinkedMap<K, V>(private val path: File,
         return db.getProperty(name)
     }
 
-    fun destroy() {
-        JniDBFactory.factory.destroy(path, initOptions);
+    override fun destroy() {
+        JniDBFactory.factory.destroy(path, initOptions)
     }
 }

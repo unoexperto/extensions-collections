@@ -37,3 +37,7 @@ interface LinkedMap<K, V> {
     fun iterator(): CloseablePeekingIterator<Pair<K, V>>
     fun iterator(prefix: K): CloseablePeekingIterator<Pair<K, V>>
 }
+
+interface DestroyableStorage {
+    fun destroy()
+}

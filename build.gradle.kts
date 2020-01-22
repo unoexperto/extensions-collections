@@ -27,7 +27,7 @@ val publicationName = "RUSL_PUB_NAME"
 
 project.group = "com.walkmind.extensions"
 val artifactID = "collections"
-project.version = "1.2"
+project.version = "1.3"
 val licenseName = "Apache-2.0"
 val licenseUrl = "http://opensource.org/licenses/apache-2.0"
 val repoHttpsUrl = "https://gitlab.com/unoexperto/extensions-collections.git"
@@ -139,10 +139,12 @@ dependencies {
     compile(kotlin("reflect", kotlinVersion))
 
     compileOnly("org.fusesource.leveldbjni:leveldbjni-all:1.8")
+    compileOnly("org.rocksdb:rocksdbjni:6.5.3")
 
     testCompile(kotlin("test-junit5", kotlinVersion))
     testCompile("org.junit.jupiter:junit-jupiter:5.6.0-RC1")
     testCompile("org.fusesource.leveldbjni:leveldbjni-all:1.8")
+    testCompile("org.rocksdb:rocksdbjni:6.5.3")
 
 //    api("junit:junit:4.12")
 //    implementation("junit:junit:4.12")
