@@ -165,6 +165,14 @@ class LevelDBLinkedMap<K, V>(private val path: File,
         }
     }
 
+    override fun merge(key: K, value: V) {
+        TODO("not supported by LevelDB")
+    }
+
+    override fun mergeAll(from: Iterable<Pair<K, V>>) {
+        TODO("not supported by LevelDB")
+    }
+
     override fun firstKey(): K? {
         db.iterator(readOptions).use {
             it.seekToFirst()

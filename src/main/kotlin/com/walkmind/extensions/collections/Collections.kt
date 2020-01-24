@@ -28,6 +28,8 @@ interface LinkedMap<K, V> {
     fun clear()
     fun put(key: K, value: V)
     fun putAll(from: Iterable<Pair<K, V>>)
+    fun merge(key: K, value: V)
+    fun mergeAll(from: Iterable<Pair<K, V>>)
     fun remove(key: K)
     fun removeRange(keyFrom: K, keyTo: K)
     fun firstKey(): K?

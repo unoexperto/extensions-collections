@@ -148,6 +148,20 @@ class RocksDBLinkedMap<K, V>(
         }
     }
 
+    override fun merge(key: K, value: V) {
+        db.merge(writeOptions, keyMarshaller.encode(key), valueMarshaller.encode(value))
+    }
+
+    override fun mergeAll(from: Iterable<Pair<K, V>>) {
+
+        WriteBatch().use { batch ->
+            for ((key, value) in from)
+                batch.merge(keyMarshaller.encode(key), valueMarshaller.encode(value))
+
+            db.write(writeOptions, batch)
+        }
+    }
+
     override fun remove(key: K) {
         db.delete(writeOptions, keyMarshaller.encode(key))
     }
@@ -223,7 +237,7 @@ class RocksDBLinkedMap<K, V>(
             }
 
             override fun peek(): Pair<K, V> {
-                return Pair(keyMarshaller.decode(it.key()), valueMarshaller.decode(it.value()));
+                return Pair(keyMarshaller.decode(it.key()), valueMarshaller.decode(it.value()))
             }
         }
     }
@@ -233,6 +247,6 @@ class RocksDBLinkedMap<K, V>(
     }
 
     override fun destroy() {
-        RocksDB.destroyDB(path.absolutePath, initOptions);
+        RocksDB.destroyDB(path.absolutePath, initOptions)
     }
 }
