@@ -84,7 +84,36 @@ class LevelDBLinkedMap<K, V>(private val path: File,
                              private val valueMarshaller: ByteArrayMarshaller<V>,
                              blockSize: Int = 64 * 1024,
                              private val deleteBatchSize: Int = 5 * 1024,
-                             private val compressOnExit: Boolean = false) : LinkedMap<K, V>, Closeable, DestroyableStorage {
+                             private val compressOnExit: Boolean = false) : LinkedMap<K, V>, MapBatchWriter<K, V>, Closeable, Destroyable {
+
+    private class LevelDBWriteBatch<K, V>(private val p: LevelDBLinkedMap<K, V>) : MapWriteBatch<K, V> {
+
+        private val batch = p.db.createWriteBatch()
+
+        override fun put(key: K, value: V) {
+            batch.put(p.keyMarshaller.encode(key), p.valueMarshaller.encode(value))
+        }
+
+        override fun merge(key: K, value: V) {
+            TODO("Level DB doesn't support merge() in batches")
+        }
+
+        override fun remove(key: K) {
+            batch.delete(p.keyMarshaller.encode(key))
+        }
+
+        override fun clear() {
+            TODO("Level DB doesn't support clear() in batches")
+        }
+
+        override fun close() {
+            batch.close()
+        }
+
+        override fun commit() {
+            p.db.write(batch, p.writeOptions)
+        }
+    }
 
     companion object {
         private val LOG = Logger.getLogger(LevelDBLinkedMap::class.java.name)
@@ -166,11 +195,11 @@ class LevelDBLinkedMap<K, V>(private val path: File,
     }
 
     override fun merge(key: K, value: V) {
-        TODO("not supported by LevelDB")
+        TODO("Level DB doesn't support merge()")
     }
 
     override fun mergeAll(from: Iterable<Pair<K, V>>) {
-        TODO("not supported by LevelDB")
+        TODO("Level DB doesn't support mergeAll()")
     }
 
     override fun firstKey(): K? {
@@ -314,5 +343,9 @@ class LevelDBLinkedMap<K, V>(private val path: File,
 
     override fun destroy() {
         JniDBFactory.factory.destroy(path, initOptions)
+    }
+
+    override fun newWriteBatch(): MapWriteBatch<K, V> {
+        return LevelDBWriteBatch(this)
     }
 }

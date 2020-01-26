@@ -22,24 +22,36 @@ interface PeekingIterator<out T> {
 
 interface CloseablePeekingIterator<out T> : PeekingIterator<T>, AutoCloseable
 
-interface LinkedMap<K, V> {
+interface MapWriteOps<K, V> {
+    fun put(key: K, value: V)
+    fun merge(key: K, value: V)
+    fun remove(key: K)
+    fun clear()
+}
+
+interface LinkedMap<K, V> : MapWriteOps<K, V> {
     fun get(key: K): V?
     fun isEmpty(): Boolean
-    fun clear()
-    fun put(key: K, value: V)
     fun putAll(from: Iterable<Pair<K, V>>)
-    fun merge(key: K, value: V)
     fun mergeAll(from: Iterable<Pair<K, V>>)
-    fun remove(key: K)
     fun removeRange(keyFrom: K, keyTo: K)
     fun firstKey(): K?
     fun lastKey(): K?
 
     // Existing iterators should work after modification of the map
     fun iterator(): CloseablePeekingIterator<Pair<K, V>>
+
     fun iterator(prefix: K): CloseablePeekingIterator<Pair<K, V>>
 }
 
-interface DestroyableStorage {
+interface MapWriteBatch<K, V> : MapWriteOps<K, V>, AutoCloseable {
+    fun commit()
+}
+
+interface MapBatchWriter<K, V> {
+    fun newWriteBatch(): MapWriteBatch<K, V>
+}
+
+interface Destroyable {
     fun destroy()
 }

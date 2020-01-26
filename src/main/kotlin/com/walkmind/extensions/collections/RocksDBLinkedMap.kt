@@ -27,11 +27,12 @@ import java.util.logging.Logger
 //    }
 //}
 
+
 class RocksDBLinkedMap<K, V>(
         private val path: File,
         options: Options?,
         private val keyMarshaller: ByteArrayMarshaller<K>,
-        private val valueMarshaller: ByteArrayMarshaller<V>) : LinkedMap<K, V>, Closeable, DestroyableStorage {
+        private val valueMarshaller: ByteArrayMarshaller<V>) : LinkedMap<K, V>, MapBatchWriter<K, V>, Closeable, Destroyable {
 
 //    fun createColumnOptions(): ColumnFamilyOptions? {
 //        val blockCacheSize = 268_435_456L
@@ -52,6 +53,35 @@ class RocksDBLinkedMap<K, V>(
 //                        .setFilterPolicy(BloomFilter()))
 //    }
 
+    private class RocksDBWriteBatch<K, V>(private val p: RocksDBLinkedMap<K, V>) : MapWriteBatch<K, V> {
+
+        private val batch = WriteBatch()
+
+        override fun put(key: K, value: V) {
+            batch.put(p.keyMarshaller.encode(key), p.valueMarshaller.encode(value))
+        }
+
+        override fun merge(key: K, value: V) {
+            batch.merge(p.keyMarshaller.encode(key), p.valueMarshaller.encode(value))
+        }
+
+        override fun remove(key: K) {
+            batch.delete(p.keyMarshaller.encode(key))
+        }
+
+        override fun clear() {
+            batch.clear()
+        }
+
+        override fun close() {
+            batch.close()
+        }
+
+        override fun commit() {
+            p.db.write(p.writeOptions, batch)
+        }
+    }
+
     companion object {
         private val LOG = Logger.getLogger(RocksDBLinkedMap::class.java.name)
 
@@ -68,28 +98,28 @@ class RocksDBLinkedMap<K, V>(
 //                .setUseFsync(false) // rafik
                 .setCompactionStyle(CompactionStyle.LEVEL)
                 .setNumLevels(compressionLevels.size)
-//            .setCompactionPriority()
+//                .setCompactionPriority()
                 .setMaxBackgroundCompactions(20)
                 .setCompressionPerLevel(compressionLevels)
                 .setMaxLogFileSize(64 * SizeUnit.MB)
-//            .setWriteBufferSize(512 * SizeUnit.MB) // default is 64M
-//            .setMinWriteBufferNumberToMerge(2)
-
-//            .setCompactionStyle(CompactionStyle.LEVEL)
+//                .setWriteBufferSize(512 * SizeUnit.MB) // default is 64M
+//                .setMinWriteBufferNumberToMerge(2)
+//                .setCompactionStyle(CompactionStyle.LEVEL)
                 .setCreateIfMissing(true)
                 .setInfoLogLevel(InfoLogLevel.ERROR_LEVEL)
-//            .setCompressionType(CompressionType.SNAPPY_COMPRESSION)
-                //.setBloomLocality(1)
-                //.setMemtablePrefixBloomSizeRatio(0.1)
+//                .setCompressionType(CompressionType.SNAPPY_COMPRESSION)
+//                .setBloomLocality(1)
+//                .setMemtablePrefixBloomSizeRatio(0.1)
                 .setMaxOpenFiles(-1)
                 .setIncreaseParallelism(4)
-//            .setParanoidChecks(true)
-                //.setAllowMmapWrites(true)
-                //.setAllowMmapReads(true)
+//                .setParanoidChecks(true)
+//                .setAllowMmapWrites(true)
+//                .setAllowMmapReads(true)
                 .setUseDirectIoForFlushAndCompaction(true)
                 .setUseDirectReads(true)
-        //.setStatsDumpPeriodSec(5 * 60)
-//            .setWalRecoveryMode(WALRecoveryMode.PointInTimeRecovery)
+
+//                .setStatsDumpPeriodSec(5 * 60)
+//                .setWalRecoveryMode(WALRecoveryMode.PointInTimeRecovery)
 //                .setStatistics(
 //                        Statistics().also { it.setStatsLevel(StatsLevel.ALL) }
 //                )
@@ -248,5 +278,9 @@ class RocksDBLinkedMap<K, V>(
 
     override fun destroy() {
         RocksDB.destroyDB(path.absolutePath, initOptions)
+    }
+
+    override fun newWriteBatch(): MapWriteBatch<K, V> {
+        return RocksDBWriteBatch(this)
     }
 }
