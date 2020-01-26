@@ -95,6 +95,7 @@ class RocksDBLinkedMap<K, V>(
         )
 
         val defaultOptions = Options()
+                .optimizeLevelStyleCompaction()
 //                .setUseFsync(false) // rafik
                 .setCompactionStyle(CompactionStyle.LEVEL)
                 .setNumLevels(compressionLevels.size)
