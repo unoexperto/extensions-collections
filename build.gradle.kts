@@ -30,8 +30,8 @@ val artifactID = "collections"
 project.version = "1.3"
 val licenseName = "Apache-2.0"
 val licenseUrl = "http://opensource.org/licenses/apache-2.0"
-val repoHttpsUrl = "https://gitlab.com/unoexperto/extensions-collections.git"
-val repoSshUri = "git@gitlab.com:unoexperto/extensions-collections.git"
+val repoHttpsUrl = "https://github.com/unoexperto/extensions-collections.git"
+val repoSshUri = "git@github.com:unoexperto/extensions-collections.git"
 val (bintrayUser, bintrayKey) = loadBintrayCredentials()
 
 fun loadBintrayCredentials(): Pair<String, String> {
