@@ -2,31 +2,30 @@ package com.walkmind.extensions.collections
 
 import java.io.Closeable
 import java.util.concurrent.ConcurrentSkipListMap
-import java.util.function.BiFunction
 
 class InMemoryLinkedMap<K, V> : LinkedMap<K, V>, Closeable, Destroyable {
 
     private val map: ConcurrentSkipListMap<K, V>
-    private val merger: BiFunction<V, V, V>
-    private val prefixMatcher: BiFunction<K, K, Boolean>
+    private val merger: (V, V) -> V
+    private val prefixMatcher: (K, K) -> Boolean
 
     // Key marshaller is required only for prefix search in parametrized iterator()
-    constructor(prefixMatcher: BiFunction<K, K, Boolean>) {
+    constructor(prefixMatcher: (K, K) -> Boolean) {
         this.map = ConcurrentSkipListMap()
-        this.merger = BiFunction { _, replacement -> replacement }
+        this.merger = { _, replacement -> replacement }
         this.prefixMatcher = prefixMatcher
     }
 
     // Key marshaller is required only for prefix search in parametrized iterator()
-    constructor(prefixMatcher: BiFunction<K, K, Boolean>, parent: Comparator<K>) {
-        this.map = ConcurrentSkipListMap(parent)
-        this.merger = BiFunction { _, replacement -> replacement }
+    constructor(prefixMatcher: (K, K) -> Boolean, comparator: Comparator<K>) {
+        this.map = ConcurrentSkipListMap(comparator)
+        this.merger = { _, replacement -> replacement }
         this.prefixMatcher = prefixMatcher
     }
 
     // Key marshaller is required only for prefix search in parametrized iterator()
-    constructor(prefixMatcher: BiFunction<K, K, Boolean>, parent: Comparator<K>, merger: BiFunction<V, V, V>) {
-        this.map = ConcurrentSkipListMap(parent)
+    constructor(prefixMatcher: (K, K) -> Boolean, comparator: Comparator<K>, merger: (V, V) -> V) {
+        this.map = ConcurrentSkipListMap(comparator)
         this.merger = merger
         this.prefixMatcher = prefixMatcher
     }
@@ -89,7 +88,7 @@ class InMemoryLinkedMap<K, V> : LinkedMap<K, V>, Closeable, Destroyable {
                 if (start != null) {
                     while (iter.hasNext()) {
                         val pair = iter.next().toPair()
-                        if (prefixMatcher.apply(pair.first, start)) {
+                        if (prefixMatcher(pair.first, start)) {
                             peeked = pair
                             break
                         }
