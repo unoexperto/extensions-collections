@@ -9,16 +9,12 @@ interface SimpleSequence<T> {
     fun pop(): T?  // returns head and removes it, null if empty
 }
 
-interface PeekingIterator<out T> {
-    // Returns the next element in the iteration and switch to next element.
-    operator fun next(): T
-
+interface PeekingIterator<out T> : Iterator<T> {
     // Returns the next element in the iteration without traversing further.
     fun peek(): T
-
-    // Returns `true` if the iteration has more elements.
-    operator fun hasNext(): Boolean
 }
+
+interface CloseableIterator<out T> : Iterator<T>, AutoCloseable
 
 interface CloseablePeekingIterator<out T> : PeekingIterator<T>, AutoCloseable
 
