@@ -1,12 +1,15 @@
+import com.walkmind.extensions.collections.InMemoryLinkedMap
 import com.walkmind.extensions.collections.LevelDBLinkedMap
 import com.walkmind.extensions.collections.LinkedMap
 import com.walkmind.extensions.collections.RocksDBLinkedMap
 import com.walkmind.extensions.marshallers.DefaultLongMarshaller
 import com.walkmind.extensions.marshallers.DefaultStringMarshaller
+import com.walkmind.extensions.misc.compareBytes
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import java.lang.RuntimeException
+import java.util.function.BiFunction
 
 class LinkedMapTest {
 
@@ -25,6 +28,19 @@ class LinkedMapTest {
                 when (clazz) {
                     RocksDBLinkedMap::class.java -> RocksDBLinkedMap(path, null, DefaultStringMarshaller, DefaultLongMarshaller)
                     LevelDBLinkedMap::class.java -> LevelDBLinkedMap(path, null, DefaultStringMarshaller, DefaultLongMarshaller)
+                    InMemoryLinkedMap::class.java -> InMemoryLinkedMap(
+                            BiFunction { value, prefix ->
+                                value.startsWith(prefix)
+                            },
+                            object : Comparator<String> {
+                                override fun compare(left: String?, right: String?): Int {
+                                    if (left == null)
+                                        return -1; else
+                                        if (right == null)
+                                            return 1; else
+                                            return compareBytes(left.toByteArray(), right.toByteArray())
+                                }
+                            })
                     else -> throw RuntimeException("Unknown class $clazz")
                 }
 
@@ -42,7 +58,7 @@ class LinkedMapTest {
     }
 
     @ParameterizedTest
-    @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class])
+    @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class, InMemoryLinkedMap::class])
     fun iterateToFirstMatchingPrefix(clazz: Class<*>) {
         createAndUseDb(clazz) { map ->
             fillMap(map)
@@ -56,7 +72,7 @@ class LinkedMapTest {
     }
 
     @ParameterizedTest
-    @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class])
+    @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class, InMemoryLinkedMap::class])
     fun iterateRemainingItems(clazz: Class<*>) {
         createAndUseDb(clazz) { map ->
             fillMap(map)
@@ -80,7 +96,7 @@ class LinkedMapTest {
     }
 
     @ParameterizedTest
-    @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class])
+    @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class, InMemoryLinkedMap::class])
     fun checkIsEmpty(clazz: Class<*>) {
         createAndUseDb(clazz) { map ->
             Assertions.assertTrue(map.isEmpty())
@@ -90,7 +106,7 @@ class LinkedMapTest {
     }
 
     @ParameterizedTest
-    @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class])
+    @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class, InMemoryLinkedMap::class])
     fun checkGet(clazz: Class<*>) {
         createAndUseDb(clazz) { map ->
             fillMap(map)
@@ -100,7 +116,7 @@ class LinkedMapTest {
     }
 
     @ParameterizedTest
-    @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class])
+    @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class, InMemoryLinkedMap::class])
     fun checkClear(clazz: Class<*>) {
         createAndUseDb(clazz) { map ->
             fillMap(map)
@@ -115,7 +131,7 @@ class LinkedMapTest {
     }
 
     @ParameterizedTest
-    @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class])
+    @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class, InMemoryLinkedMap::class])
     fun checkOverwrite(clazz: Class<*>) {
         createAndUseDb(clazz) { map ->
             // First pass
@@ -130,7 +146,7 @@ class LinkedMapTest {
     }
 
     @ParameterizedTest
-    @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class])
+    @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class, InMemoryLinkedMap::class])
     fun checkPutAll(clazz: Class<*>) {
         createAndUseDb(clazz) { map ->
 
@@ -140,7 +156,7 @@ class LinkedMapTest {
     }
 
     @ParameterizedTest
-    @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class])
+    @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class, InMemoryLinkedMap::class])
     fun checkSingleDelete(clazz: Class<*>) {
         createAndUseDb(clazz) { map ->
 
@@ -154,7 +170,7 @@ class LinkedMapTest {
     }
 
     @ParameterizedTest
-    @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class])
+    @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class, InMemoryLinkedMap::class])
     fun checkRemoveRange(clazz: Class<*>) {
         createAndUseDb(clazz) { map ->
 
@@ -173,7 +189,7 @@ class LinkedMapTest {
     }
 
     @ParameterizedTest
-    @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class])
+    @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class, InMemoryLinkedMap::class])
     fun checkFirst(clazz: Class<*>) {
         createAndUseDb(clazz) { map ->
             fillMap(map)
@@ -183,7 +199,7 @@ class LinkedMapTest {
     }
 
     @ParameterizedTest
-    @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class])
+    @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class, InMemoryLinkedMap::class])
     fun checkLast(clazz: Class<*>) {
         createAndUseDb(clazz) { map ->
             fillMap(map)

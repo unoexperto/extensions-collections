@@ -1,6 +1,7 @@
 package com.walkmind.extensions.collections
 
 import com.walkmind.extensions.marshallers.ByteArrayMarshaller
+import com.walkmind.extensions.misc.compareBytes
 import org.fusesource.leveldbjni.JniDBFactory
 import org.iq80.leveldb.*
 import java.io.Closeable
@@ -19,19 +20,7 @@ class DefaultLevelDBComparator : DBComparator {
     }
 
     override fun compare(o1: ByteArray?, o2: ByteArray?): Int {
-        val a1 = (o1 ?: return -1)
-        val a2 = (o2 ?: return 1)
-
-        if (a1.size != a2.size)
-            return a1.size - a2.size // https://github.com/google/leveldb/blob/master/include/leveldb/slice.h#L101-L111
-        else {
-            for (index in 0 until a1.size)
-                if (a1[index] != a2[index])
-                    return (0xff and a1[index].toInt()) - (0xff and a2[index].toInt())
-
-            return 0
-        }
-//        return UnsignedBytes.lexicographicalComparator().compare(o1, o2)
+        return compareBytes(o1, o2)
     }
 
     override fun findShortestSeparator(startIn: ByteArray?, limitIn: ByteArray?): ByteArray? {
@@ -95,7 +84,7 @@ class LevelDBLinkedMap<K, V>(private val path: File,
         }
 
         override fun merge(key: K, value: V) {
-            TODO("Level DB doesn't support merge() in batches")
+            throw UnsupportedOperationException("Level DB doesn't support merge() in batches")
         }
 
         override fun remove(key: K) {
@@ -103,7 +92,7 @@ class LevelDBLinkedMap<K, V>(private val path: File,
         }
 
         override fun clear() {
-            TODO("Level DB doesn't support clear() in batches")
+            throw UnsupportedOperationException("Level DB doesn't support clear() in batches")
         }
 
         override fun close() {
@@ -195,11 +184,11 @@ class LevelDBLinkedMap<K, V>(private val path: File,
     }
 
     override fun merge(key: K, value: V) {
-        TODO("Level DB doesn't support merge()")
+        throw UnsupportedOperationException("Level DB doesn't support merge()")
     }
 
     override fun mergeAll(from: Iterable<Pair<K, V>>) {
-        TODO("Level DB doesn't support mergeAll()")
+        throw UnsupportedOperationException("Level DB doesn't support mergeAll()")
     }
 
     override fun firstKey(): K? {

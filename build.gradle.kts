@@ -27,7 +27,7 @@ val publicationName = "RUSL_PUB_NAME"
 
 project.group = "com.walkmind.extensions"
 val artifactID = "collections"
-project.version = "1.3"
+project.version = "1.4"
 val licenseName = "Apache-2.0"
 val licenseUrl = "http://opensource.org/licenses/apache-2.0"
 val repoHttpsUrl = "https://github.com/unoexperto/extensions-collections.git"
