@@ -29,7 +29,7 @@ class LinkedMapTest {
                     RocksDBLinkedMap::class.java -> RocksDBLinkedMap(path, null, DefaultStringMarshaller, DefaultLongMarshaller)
                     LevelDBLinkedMap::class.java -> LevelDBLinkedMap(path, null, DefaultStringMarshaller, DefaultLongMarshaller)
                     InMemoryLinkedMap::class.java -> InMemoryLinkedMap(
-                            BiFunction { value, prefix ->
+                            { value, prefix ->
                                 value.startsWith(prefix)
                             },
                             object : Comparator<String> {
