@@ -2,6 +2,7 @@ import com.walkmind.extensions.collections.InMemoryLinkedMap
 import com.walkmind.extensions.collections.LevelDBLinkedMap
 import com.walkmind.extensions.collections.LinkedMap
 import com.walkmind.extensions.collections.RocksDBLinkedMap
+import com.walkmind.extensions.marshallers.ByteBufMarshaller
 import com.walkmind.extensions.marshallers.DefaultLongMarshaller
 import com.walkmind.extensions.marshallers.DefaultStringMarshaller
 import com.walkmind.extensions.misc.compareBytes
@@ -9,7 +10,6 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import java.lang.RuntimeException
-import java.util.function.BiFunction
 
 class LinkedMapTest {
 
@@ -26,7 +26,7 @@ class LinkedMapTest {
         println(path.absolutePath)
         val instance =
                 when (clazz) {
-                    RocksDBLinkedMap::class.java -> RocksDBLinkedMap(path, null, DefaultStringMarshaller, DefaultLongMarshaller)
+                    RocksDBLinkedMap::class.java -> RocksDBLinkedMap(path, null, ByteBufMarshaller.utf8Marshaller, ByteBufMarshaller.longMarshaller)
                     LevelDBLinkedMap::class.java -> LevelDBLinkedMap(path, null, DefaultStringMarshaller, DefaultLongMarshaller)
                     InMemoryLinkedMap::class.java -> InMemoryLinkedMap(
                             { value, prefix ->

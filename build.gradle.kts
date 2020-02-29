@@ -23,11 +23,11 @@ kotlin {
     //    experimental.coroutines = Coroutines.ENABLE
 }
 
-val publicationName = "RUSL_PUB_NAME"
+val publicationName = "DefaultPublication"
 
 project.group = "com.walkmind.extensions"
 val artifactID = "collections"
-project.version = "1.4"
+project.version = "1.5"
 val licenseName = "Apache-2.0"
 val licenseUrl = "http://opensource.org/licenses/apache-2.0"
 val repoHttpsUrl = "https://github.com/unoexperto/extensions-collections.git"
@@ -70,7 +70,6 @@ bintray {
 val sourcesJar by tasks.creating(Jar::class) {
     archiveClassifier.set("sources")
     from(sourceSets.main.get().allSource)
-//    from(kotlin.sourceSets["main"].kotlin)
 }
 
 val javadocJar by tasks.creating(Jar::class) {
@@ -139,14 +138,14 @@ dependencies {
     compile(kotlin("reflect", kotlinVersion))
 
     compileOnly("org.fusesource.leveldbjni:leveldbjni-all:1.8")
-    compileOnly("org.rocksdb:rocksdbjni:6.5.3")
-    compileOnly("io.netty:netty-buffer:4.1.44.Final")
+    compileOnly("org.rocksdb:rocksdbjni:6.6.4")
+    compileOnly("io.netty:netty-buffer:4.1.45.Final")
 
     testCompile(kotlin("test-junit5", kotlinVersion))
-    testCompile("org.junit.jupiter:junit-jupiter:5.6.0-RC1")
+    testCompile("org.junit.jupiter:junit-jupiter:5.6.0")
     testCompile("org.fusesource.leveldbjni:leveldbjni-all:1.8")
-    testCompile("org.rocksdb:rocksdbjni:6.5.3")
-    testCompile("io.netty:netty-buffer:4.1.44.Final")
+    testCompile("org.rocksdb:rocksdbjni:6.6.4")
+    testCompile("io.netty:netty-buffer:4.1.45.Final")
 
 //    api("junit:junit:4.12")
 //    implementation("junit:junit:4.12")
@@ -184,8 +183,8 @@ tasks {
                 "-XXLanguage:+NewInference",
                 "-Xinline-classes",
                 "-Xjvm-default=enable")
-        kotlinOptions.apiVersion = "1.4"
-        kotlinOptions.languageVersion = "1.4"
+        kotlinOptions.apiVersion = "1.3"
+        kotlinOptions.languageVersion = "1.3"
     }
 
     withType(Test::class.java) {
