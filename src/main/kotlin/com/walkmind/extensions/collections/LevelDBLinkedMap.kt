@@ -1,6 +1,6 @@
 package com.walkmind.extensions.collections
 
-import com.walkmind.extensions.marshallers.ByteArrayMarshaller
+import com.walkmind.extensions.serializers.ByteArraySerializer
 import com.walkmind.extensions.misc.compareBytes
 import org.fusesource.leveldbjni.JniDBFactory
 import org.iq80.leveldb.*
@@ -69,8 +69,8 @@ class DefaultLevelDBComparator : DBComparator {
 
 class LevelDBLinkedMap<K, V>(private val path: File,
                              comparator: DBComparator?,
-                             private val keyMarshaller: ByteArrayMarshaller<K>,
-                             private val valueMarshaller: ByteArrayMarshaller<V>,
+                             private val keySerializer: ByteArraySerializer<K>,
+                             private val valueSerializer: ByteArraySerializer<V>,
                              blockSize: Int = 64 * 1024,
                              private val deleteBatchSize: Int = 5 * 1024,
                              private val compressOnExit: Boolean = false) : LinkedMap<K, V>, MapBatchWriter<K, V>, Closeable, Destroyable {
@@ -80,7 +80,7 @@ class LevelDBLinkedMap<K, V>(private val path: File,
         private val batch = p.db.createWriteBatch()
 
         override fun put(key: K, value: V) {
-            batch.put(p.keyMarshaller.encode(key), p.valueMarshaller.encode(value))
+            batch.put(p.keySerializer.encode(key), p.valueSerializer.encode(value))
         }
 
         override fun merge(key: K, value: V) {
@@ -88,7 +88,7 @@ class LevelDBLinkedMap<K, V>(private val path: File,
         }
 
         override fun remove(key: K) {
-            batch.delete(p.keyMarshaller.encode(key))
+            batch.delete(p.keySerializer.encode(key))
         }
 
         override fun clear() {
@@ -123,7 +123,7 @@ class LevelDBLinkedMap<K, V>(private val path: File,
     }
 
     override fun get(key: K): V? {
-        return db.get(keyMarshaller.encode(key), readOptions)?.let { valueMarshaller.decode(it) }
+        return db.get(keySerializer.encode(key), readOptions)?.let { valueSerializer.decode(it) }
     }
 
     override fun isEmpty(): Boolean {
@@ -142,8 +142,8 @@ class LevelDBLinkedMap<K, V>(private val path: File,
     }
 
     override fun removeRange(keyFrom: K, keyTo: K) {
-        val byteFrom = keyMarshaller.encode(keyFrom)
-        val byteTo = keyMarshaller.encode(keyTo)
+        val byteFrom = keySerializer.encode(keyFrom)
+        val byteTo = keySerializer.encode(keyTo)
 
         if (DefaultLevelDBComparator.INSTANCE.compare(byteFrom, byteTo) < 0)
             db.iterator(readOptions).use {
@@ -172,13 +172,13 @@ class LevelDBLinkedMap<K, V>(private val path: File,
     }
 
     override fun put(key: K, value: V) {
-        db.put(keyMarshaller.encode(key), valueMarshaller.encode(value), writeOptions)
+        db.put(keySerializer.encode(key), valueSerializer.encode(value), writeOptions)
     }
 
     override fun putAll(from: Iterable<Pair<K, V>>) {
         db.createWriteBatch().use { batch ->
             for ((key, value) in from)
-                batch.put(keyMarshaller.encode(key), valueMarshaller.encode(value))
+                batch.put(keySerializer.encode(key), valueSerializer.encode(value))
             db.write(batch, writeOptions)
         }
     }
@@ -194,14 +194,14 @@ class LevelDBLinkedMap<K, V>(private val path: File,
     override fun firstKey(): K? {
         db.iterator(readOptions).use {
             it.seekToFirst()
-            return it.runCatching { keyMarshaller.decode(peekNext().key) }.getOrNull()
+            return it.runCatching { keySerializer.decode(peekNext().key) }.getOrNull()
         }
     }
 
     override fun lastKey(): K? {
         db.iterator(readOptions).use {
             it.seekToLast()
-            return it.runCatching { keyMarshaller.decode(peekNext().key) }.getOrNull()
+            return it.runCatching { keySerializer.decode(peekNext().key) }.getOrNull()
         }
     }
 
@@ -223,7 +223,7 @@ class LevelDBLinkedMap<K, V>(private val path: File,
                 if (start == null)
                     iter.seekToFirst()
                 else
-                    iter.seek(keyMarshaller.encode(start))
+                    iter.seek(keySerializer.encode(start))
             }
 
             override fun hasNext(): Boolean {
@@ -238,7 +238,7 @@ class LevelDBLinkedMap<K, V>(private val path: File,
             override fun next(): Pair<K, V> {
                 return iter.next().let { (k, v) ->
                     bytesRead += v.size
-                    Pair(keyMarshaller.decode(k), valueMarshaller.decode(v))
+                    Pair(keySerializer.decode(k), valueSerializer.decode(v))
                 }
             }
 
@@ -247,7 +247,7 @@ class LevelDBLinkedMap<K, V>(private val path: File,
             }
 
             override fun peek(): Pair<K, V> {
-                return iter.peekNext().let { (k, v) -> Pair(keyMarshaller.decode(k), valueMarshaller.decode(v)) }
+                return iter.peekNext().let { (k, v) -> Pair(keySerializer.decode(k), valueSerializer.decode(v)) }
             }
         }
     }
@@ -301,7 +301,7 @@ class LevelDBLinkedMap<K, V>(private val path: File,
                 if (iter.hasNext()) {
                     val (k, v) = iter.next()
                     bytesRead += v.size
-                    return Pair(keyMarshaller.decode(k), valueMarshaller.decode(v))
+                    return Pair(keySerializer.decode(k), valueSerializer.decode(v))
                 } else
                     return null
             }
@@ -314,7 +314,7 @@ class LevelDBLinkedMap<K, V>(private val path: File,
             LOG.finer("Begin final compaction")
             firstKey()?.let { first ->
                 lastKey()?.let { last ->
-                    db.compactRange(keyMarshaller.encode(first), keyMarshaller.encode(last))
+                    db.compactRange(keySerializer.encode(first), keySerializer.encode(last))
                 }
             }
             LOG.finer("Completed final compaction")
@@ -323,7 +323,7 @@ class LevelDBLinkedMap<K, V>(private val path: File,
     }
 
     override fun remove(key: K) {
-        db.delete(keyMarshaller.encode(key), writeOptions)
+        db.delete(keySerializer.encode(key), writeOptions)
     }
 
     fun getProperty(name: String): String? {

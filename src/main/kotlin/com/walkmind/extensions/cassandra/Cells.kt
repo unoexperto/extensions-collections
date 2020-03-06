@@ -1,6 +1,6 @@
 package com.walkmind.extensions.cassandra
 
-import com.walkmind.extensions.marshallers.ByteBufMarshaller
+import com.walkmind.extensions.serializers.ByteBufSerializer
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 
@@ -17,7 +17,7 @@ enum class CellFlag(val value: Int) {
 
 interface Cell {
     companion object {
-        val marshaller = object : ByteBufMarshaller<Cell> {
+        val serializer = object : ByteBufSerializer<Cell> {
 
             // https://github.com/facebook/rocksdb/blob/v6.5.3/utilities/cassandra/format.cc#L73
             // https://github.com/facebook/rocksdb/blob/v6.5.3/utilities/cassandra/format.cc#L108

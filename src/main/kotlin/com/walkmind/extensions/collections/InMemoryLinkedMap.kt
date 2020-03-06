@@ -9,21 +9,21 @@ class InMemoryLinkedMap<K, V> : LinkedMap<K, V>, Closeable, Destroyable {
     private val merger: (V, V) -> V
     private val prefixMatcher: (K, K) -> Boolean
 
-    // Key marshaller is required only for prefix search in parametrized iterator()
+    // Key serializer is required only for prefix search in parametrized iterator()
     constructor(prefixMatcher: (K, K) -> Boolean) {
         this.map = ConcurrentSkipListMap()
         this.merger = { _, replacement -> replacement }
         this.prefixMatcher = prefixMatcher
     }
 
-    // Key marshaller is required only for prefix search in parametrized iterator()
+    // Key serializer is required only for prefix search in parametrized iterator()
     constructor(prefixMatcher: (K, K) -> Boolean, comparator: Comparator<K>) {
         this.map = ConcurrentSkipListMap(comparator)
         this.merger = { _, replacement -> replacement }
         this.prefixMatcher = prefixMatcher
     }
 
-    // Key marshaller is required only for prefix search in parametrized iterator()
+    // Key serializer is required only for prefix search in parametrized iterator()
     constructor(prefixMatcher: (K, K) -> Boolean, comparator: Comparator<K>, merger: (V, V) -> V) {
         this.map = ConcurrentSkipListMap(comparator)
         this.merger = merger

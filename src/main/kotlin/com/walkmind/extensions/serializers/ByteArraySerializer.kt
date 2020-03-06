@@ -1,25 +1,25 @@
-package com.walkmind.extensions.marshallers
+package com.walkmind.extensions.serializers
 
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 
-interface ByteArrayMarshaller<T> {
+interface ByteArraySerializer<T> {
     fun encode(value: T): ByteArray
     fun decode(value: ByteArray): T
 
     @JvmDefault
-    fun <V>bimap(enc: (V) -> T, dec: (T) -> V): ByteArrayMarshaller<V> = object : ByteArrayMarshaller<V> {
+    fun <V>bimap(enc: (V) -> T, dec: (T) -> V): ByteArraySerializer<V> = object : ByteArraySerializer<V> {
         override fun encode(value: V): ByteArray {
-            return this@ByteArrayMarshaller.encode(enc(value))
+            return this@ByteArraySerializer.encode(enc(value))
         }
 
         override fun decode(value: ByteArray): V {
-            return dec(this@ByteArrayMarshaller.decode(value))
+            return dec(this@ByteArraySerializer.decode(value))
         }
     }
 }
 
-object DefaultLongMarshaller : ByteArrayMarshaller<Long> {
+object DefaultLongSerializer : ByteArraySerializer<Long> {
     override fun encode(value: Long): ByteArray {
         return ByteBuffer.allocate(Long.SIZE_BYTES).putLong(value).array()
     }
@@ -29,7 +29,7 @@ object DefaultLongMarshaller : ByteArrayMarshaller<Long> {
     }
 }
 
-object DefaultStringMarshaller : ByteArrayMarshaller<String> {
+object DefaultStringSerializer : ByteArraySerializer<String> {
     override fun encode(value: String): ByteArray {
         return value.toByteArray(StandardCharsets.UTF_8)
     }

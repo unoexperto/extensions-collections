@@ -1,7 +1,7 @@
 package com.walkmind.extensions.collections
 
-import com.walkmind.extensions.marshallers.ByteBufMarshaller
-import com.walkmind.extensions.marshallers.use
+import com.walkmind.extensions.serializers.ByteBufSerializer
+import com.walkmind.extensions.serializers.use
 import io.netty.buffer.PooledByteBufAllocator.DEFAULT
 import io.netty.buffer.Unpooled
 import org.rocksdb.*
@@ -34,8 +34,9 @@ import java.util.logging.Logger
 class RocksDBLinkedMap<K, V>(
         private val path: File,
         options: Options?,
-        private val keyMarshaller: ByteBufMarshaller<K>,
-        private val valueMarshaller: ByteBufMarshaller<V>) : LinkedMap<K, V>, MapBatchWriter<K, V>, Closeable, Destroyable {
+        syncOnWrite: Boolean,
+        private val keySerializer: ByteBufSerializer<K>,
+        private val valueSerializer: ByteBufSerializer<V>) : LinkedMap<K, V>, MapBatchWriter<K, V>, Closeable, Destroyable {
 
 //    fun createColumnOptions(): ColumnFamilyOptions? {
 //        val blockCacheSize = 268_435_456L
@@ -61,15 +62,15 @@ class RocksDBLinkedMap<K, V>(
         private val batch = WriteBatch()
 
         override fun put(key: K, value: V) {
-            batch.put(p.keyMarshaller.encodeToArray(key), p.valueMarshaller.encodeToArray(value))
+            batch.put(p.keySerializer.encodeToArray(key), p.valueSerializer.encodeToArray(value))
         }
 
         override fun merge(key: K, value: V) {
-            batch.merge(p.keyMarshaller.encodeToArray(key), p.valueMarshaller.encodeToArray(value))
+            batch.merge(p.keySerializer.encodeToArray(key), p.valueSerializer.encodeToArray(value))
         }
 
         override fun remove(key: K) {
-            batch.delete(p.keyMarshaller.encodeToArray(key))
+            batch.delete(p.keySerializer.encodeToArray(key))
         }
 
         override fun clear() {
@@ -130,7 +131,7 @@ class RocksDBLinkedMap<K, V>(
     }
 
     private val db: RocksDB
-    private val writeOptions: WriteOptions = WriteOptions().setSync(false)//.setDisableWAL(true)
+    private val writeOptions: WriteOptions = WriteOptions().setSync(syncOnWrite)//.setDisableWAL(true)
     private val readOptions = ReadOptions()
     //    private val readOptionsTailing = ReadOptions().setTailing(true)
     private val initOptions: Options = options ?: defaultOptions
@@ -143,9 +144,9 @@ class RocksDBLinkedMap<K, V>(
     override fun get(key: K): V? {
         DEFAULT.heapBuffer().use { buf ->
             assert(buf.isContiguous)
-            keyMarshaller.encode(key, buf)
+            keySerializer.encode(key, buf)
             return db.get(readOptions, buf.array(), buf.arrayOffset(), buf.readableBytes())?.let { bytes ->
-                Unpooled.wrappedBuffer(bytes).use(valueMarshaller::decode)
+                Unpooled.wrappedBuffer(bytes).use(valueSerializer::decode)
             }
         }
     }
@@ -177,11 +178,11 @@ class RocksDBLinkedMap<K, V>(
     override fun put(key: K, value: V) {
         DEFAULT.heapBuffer().use { bufK ->
             assert(bufK.isContiguous)
-            keyMarshaller.encode(key, bufK)
+            keySerializer.encode(key, bufK)
 
             DEFAULT.heapBuffer().use { bufV ->
                 assert(bufV.isContiguous)
-                valueMarshaller.encode(value, bufV)
+                valueSerializer.encode(value, bufV)
 
                 db.put(writeOptions,
                         bufK.array(), bufK.arrayOffset(), bufK.readableBytes(),
@@ -194,7 +195,7 @@ class RocksDBLinkedMap<K, V>(
 
         WriteBatch().use { batch ->
             for ((key, value) in from)
-                batch.put(keyMarshaller.encodeToArray(key), valueMarshaller.encodeToArray(value))
+                batch.put(keySerializer.encodeToArray(key), valueSerializer.encodeToArray(value))
 
             db.write(writeOptions, batch)
         }
@@ -203,11 +204,11 @@ class RocksDBLinkedMap<K, V>(
     override fun merge(key: K, value: V) {
         DEFAULT.heapBuffer().use { bufK ->
             assert(bufK.isContiguous)
-            keyMarshaller.encode(key, bufK)
+            keySerializer.encode(key, bufK)
 
             DEFAULT.heapBuffer().use { bufV ->
                 assert(bufV.isContiguous)
-                valueMarshaller.encode(value, bufV)
+                valueSerializer.encode(value, bufV)
 
                 db.merge(writeOptions,
                         bufK.array(), bufK.arrayOffset(), bufK.readableBytes(),
@@ -220,7 +221,7 @@ class RocksDBLinkedMap<K, V>(
 
         WriteBatch().use { batch ->
             for ((key, value) in from)
-                batch.merge(keyMarshaller.encodeToArray(key), valueMarshaller.encodeToArray(value))
+                batch.merge(keySerializer.encodeToArray(key), valueSerializer.encodeToArray(value))
 
             db.write(writeOptions, batch)
         }
@@ -229,14 +230,14 @@ class RocksDBLinkedMap<K, V>(
     override fun remove(key: K) {
         DEFAULT.heapBuffer().use { buf ->
             assert(buf.isContiguous)
-            keyMarshaller.encode(key, buf)
+            keySerializer.encode(key, buf)
 
             db.delete(writeOptions, buf.array(), buf.arrayOffset(), buf.readableBytes())
         }
     }
 
     override fun removeRange(keyFrom: K, keyTo: K) {
-        db.deleteRange(writeOptions, keyMarshaller.encodeToArray(keyFrom), keyMarshaller.encodeToArray(keyTo))
+        db.deleteRange(writeOptions, keySerializer.encodeToArray(keyFrom), keySerializer.encodeToArray(keyTo))
     }
 
     override fun firstKey(): K? {
@@ -244,7 +245,7 @@ class RocksDBLinkedMap<K, V>(
             it.seekToFirst()
 
             return if (it.isValid)
-                Unpooled.wrappedBuffer(it.key()).use(keyMarshaller::decode)
+                Unpooled.wrappedBuffer(it.key()).use(keySerializer::decode)
             else
                 null
         }
@@ -255,7 +256,7 @@ class RocksDBLinkedMap<K, V>(
             it.seekToLast()
 
             return if (it.isValid)
-                Unpooled.wrappedBuffer(it.key()).use(keyMarshaller::decode)
+                Unpooled.wrappedBuffer(it.key()).use(keySerializer::decode)
             else
                 null
         }
@@ -279,7 +280,7 @@ class RocksDBLinkedMap<K, V>(
                 if (start == null)
                     it.seekToFirst()
                 else
-                    it.seek(keyMarshaller.encodeToArray(start))
+                    it.seek(keySerializer.encodeToArray(start))
             }
 
             override fun hasNext(): Boolean {
@@ -297,8 +298,8 @@ class RocksDBLinkedMap<K, V>(
                 bytesRead += v.size
 
                 val res = Pair(
-                        Unpooled.wrappedBuffer(k).use(keyMarshaller::decode),
-                        Unpooled.wrappedBuffer(v).use(valueMarshaller::decode)
+                        Unpooled.wrappedBuffer(k).use(keySerializer::decode),
+                        Unpooled.wrappedBuffer(v).use(valueSerializer::decode)
                 )
                 it.next()
                 return res
@@ -310,8 +311,8 @@ class RocksDBLinkedMap<K, V>(
 
             override fun peek(): Pair<K, V> {
                 return Pair(
-                        Unpooled.wrappedBuffer(it.key()).use(keyMarshaller::decode),
-                        Unpooled.wrappedBuffer(it.value()).use(valueMarshaller::decode)
+                        Unpooled.wrappedBuffer(it.key()).use(keySerializer::decode),
+                        Unpooled.wrappedBuffer(it.value()).use(valueSerializer::decode)
                 )
             }
         }
