@@ -1,9 +1,12 @@
 package com.walkmind.extensions.serializers
 
+import com.walkmind.extensions.misc.ObjectPool
+import com.walkmind.extensions.misc.use
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.ByteBufUtil
 import io.netty.buffer.PooledByteBufAllocator
 import io.netty.buffer.Unpooled
+import javax.crypto.Cipher
 
 inline fun <R> ByteBuf.use(block: (ByteBuf) -> R): R {
     try {
@@ -140,6 +143,55 @@ interface ByteBufSerializer<T> {
                         res[key] = value
                     }
                     return res
+                }
+            }
+        }
+
+        @JvmStatic
+        fun <T> encrypted(
+                serializer: ByteBufSerializer<T>,
+                encodePool: ObjectPool<Cipher>,
+                decodePool: ObjectPool<Cipher>): ByteBufSerializer<T> {
+
+            return object : ByteBufSerializer<T> {
+                override fun encode(value: T, out: ByteBuf) {
+
+                    assert(out.hasArray())
+                    PooledByteBufAllocator.DEFAULT.heapBuffer().use { raw ->
+                        encodePool.use { cipher ->
+                            serializer.encode(value, raw)
+                            val rawSize = raw.readableBytes()
+                            val sizeEncoded = cipher.getOutputSize(rawSize)
+
+                            out.ensureWritable(sizeEncoded + 4)
+
+                            out.writeInt(sizeEncoded)
+                            val written = cipher.doFinal(
+                                    raw.array(), raw.arrayOffset() + raw.readerIndex(), rawSize,
+                                    out.array(), out.arrayOffset() + out.writerIndex())
+
+                            out.writerIndex(out.writerIndex() + written)
+                        }
+                    }
+                }
+
+                override fun decode(input: ByteBuf): T {
+                    assert(input.hasArray())
+                    return decodePool.use { cipher ->
+                        val encryptedSize = input.readInt()
+                        val decodedSize = cipher.getOutputSize(encryptedSize)
+
+                        PooledByteBufAllocator.DEFAULT.heapBuffer(decodedSize).use { raw ->
+
+                            val written = cipher.doFinal(
+                                    input.array(), input.arrayOffset() + input.readerIndex(), encryptedSize,
+                                    raw.array(), raw.arrayOffset() + raw.writerIndex())
+                            input.readerIndex(input.readerIndex() + encryptedSize)
+                            raw.writerIndex(raw.writerIndex() + written)
+
+                            serializer.decode(raw)
+                        }
+                    }
                 }
             }
         }

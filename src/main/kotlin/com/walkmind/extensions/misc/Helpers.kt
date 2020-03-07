@@ -1,5 +1,21 @@
 package com.walkmind.extensions.misc
 
+interface ObjectPool<T> {
+    fun acquire(): T
+    fun release(obj: T)
+}
+
+inline fun <T, R> ObjectPool<T>.use(body: (T) -> R): R {
+    var obj: T? = null
+    try {
+        obj = this.acquire()
+        return body(obj)
+    } finally {
+        if (obj != null)
+            this.release(obj)
+    }
+}
+
 fun compareBytes(o1: ByteArray?, o2: ByteArray?): Int {
     val a1 = (o1 ?: return -1)
     val a2 = (o2 ?: return 1)
