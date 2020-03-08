@@ -25,3 +25,8 @@ hs_err_pid*
 /project/project/
 /project/target/
 /target/
+/.gradle/
+/build/
+/gradle/wrapper/gradle-wrapper.properties
+/gradlew
+/gradlew.bat

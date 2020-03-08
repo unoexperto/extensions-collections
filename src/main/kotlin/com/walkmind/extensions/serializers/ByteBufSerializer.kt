@@ -93,6 +93,21 @@ interface ByteBufSerializer<T> {
         }
 
         @JvmField
+        val byteArraySerializer = object : ByteBufSerializer<ByteArray> {
+            override fun encode(value: ByteArray, out: ByteBuf) {
+                out.writeInt(value.size)
+                out.writeBytes(value)
+            }
+
+            override fun decode(input: ByteBuf): ByteArray {
+                val size = input.readInt()
+                val result = ByteArray(size)
+                input.readBytes(result)
+                return result
+            }
+        }
+
+        @JvmField
         val utf8SizedSerializer = object : ByteBufSerializer<String> {
             override fun encode(value: String, out: ByteBuf) {
                 out.writeInt(ByteBufUtil.utf8Bytes(value))
@@ -105,15 +120,15 @@ interface ByteBufSerializer<T> {
         }
 
         @JvmStatic
-        fun <T> listSerializer(serializer: ByteBufSerializer<T>): ByteBufSerializer<ArrayList<T>> {
-            return object : ByteBufSerializer<ArrayList<T>> {
-                override fun encode(value: ArrayList<T>, out: ByteBuf) {
+        fun <T> listSerializer(serializer: ByteBufSerializer<T>): ByteBufSerializer<List<T>> {
+            return object : ByteBufSerializer<List<T>> {
+                override fun encode(value: List<T>, out: ByteBuf) {
                     out.writeInt(value.size)
                     for (item in value)
                         serializer.encode(item, out)
                 }
 
-                override fun decode(input: ByteBuf): ArrayList<T> {
+                override fun decode(input: ByteBuf): List<T> {
                     val size = input.readInt()
                     val res = ArrayList<T>(size)
                     for (i in 0 until size)
