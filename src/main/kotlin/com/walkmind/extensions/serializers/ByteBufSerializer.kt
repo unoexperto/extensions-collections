@@ -132,7 +132,7 @@ interface ByteBufSerializer<T> {
                     val size = input.readInt()
                     val res = ArrayList<T>(size)
                     for (i in 0 until size)
-                        res[i] = serializer.decode(input)
+                        res.add(serializer.decode(input))
                     return res
                 }
             }
