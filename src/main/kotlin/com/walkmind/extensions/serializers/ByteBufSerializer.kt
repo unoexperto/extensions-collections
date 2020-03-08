@@ -35,7 +35,7 @@ interface ByteBufSerializer<T> {
 
     @JvmDefault
     fun encodeToArray(value: T): ByteArray {
-        val buf = PooledByteBufAllocator.DEFAULT.buffer()
+        val buf = PooledByteBufAllocator.DEFAULT.heapBuffer()
         this@ByteBufSerializer.encode(value, buf)
         val res = ByteArray(buf.readableBytes())
         buf.readBytes(res)
@@ -45,7 +45,7 @@ interface ByteBufSerializer<T> {
     @JvmDefault
     fun toByteArraySerializer(): ByteArraySerializer<T> = object : ByteArraySerializer<T> {
         override fun encode(value: T): ByteArray {
-            val buf = PooledByteBufAllocator.DEFAULT.buffer()
+            val buf = PooledByteBufAllocator.DEFAULT.heapBuffer()
             this@ByteBufSerializer.encode(value, buf)
             val res = ByteArray(buf.readableBytes())
             buf.readBytes(res)
