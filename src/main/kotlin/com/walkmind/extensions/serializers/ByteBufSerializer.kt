@@ -163,6 +163,27 @@ interface ByteBufSerializer<T> {
         }
 
         @JvmStatic
+        fun <T> nullable(serializer: ByteBufSerializer<T>): ByteBufSerializer<T?> {
+            return object : ByteBufSerializer<T?> {
+                override fun encode(value: T?, out: ByteBuf) {
+                    if (value == null)
+                        out.writeBoolean(false)
+                    else {
+                        out.writeBoolean(true)
+                        serializer.encode(value, out)
+                    }
+                }
+
+                override fun decode(input: ByteBuf): T? {
+                    if (input.readBoolean())
+                        return serializer.decode(input)
+                    else
+                        return null
+                }
+            }
+        }
+
+        @JvmStatic
         fun <T> encrypted(
                 serializer: ByteBufSerializer<T>,
                 encodePool: ObjectPool<Cipher>,
