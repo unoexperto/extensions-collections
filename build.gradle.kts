@@ -11,8 +11,9 @@ import java.util.Properties
 val kotlinVersion = plugins.getPlugin(KotlinPluginWrapper::class.java).kotlinPluginVersion
 
 plugins {
-    kotlin("jvm") version "1.3.61"
+    kotlin("jvm") version "1.3.72"
     id("java")
+    idea
     id("com.github.johnrengelman.shadow") version "5.2.0"
     id("maven-publish")
     id("com.jfrog.bintray") version "1.8.4"
@@ -27,7 +28,7 @@ val publicationName = "DefaultPublication"
 
 project.group = "com.walkmind.extensions"
 val artifactID = "collections"
-project.version = "1.9"
+project.version = "1.13"
 val licenseName = "Apache-2.0"
 val licenseUrl = "http://opensource.org/licenses/apache-2.0"
 val repoHttpsUrl = "https://github.com/unoexperto/extensions-collections.git"
@@ -133,28 +134,38 @@ publishing {
     }
 }
 
+idea {
+    module {
+        isDownloadJavadoc = true
+        isDownloadSources = true
+    }
+}
+
 dependencies {
-    compile(kotlin("stdlib-jdk8", kotlinVersion))
-    compile(kotlin("reflect", kotlinVersion))
+    implementation(kotlin("stdlib-jdk8", kotlinVersion))
+    implementation(kotlin("reflect", kotlinVersion))
 
     compileOnly("org.fusesource.leveldbjni:leveldbjni-all:1.8")
-    compileOnly("org.rocksdb:rocksdbjni:6.6.4")
-    compileOnly("io.netty:netty-buffer:4.1.45.Final")
+    compileOnly("org.rocksdb:rocksdbjni:6.8.1")
+    compileOnly("io.netty:netty-buffer:4.1.50.Final")
 
-    testCompile(kotlin("test-junit5", kotlinVersion))
-    testCompile("org.junit.jupiter:junit-jupiter:5.6.0")
-    testCompile("org.fusesource.leveldbjni:leveldbjni-all:1.8")
-    testCompile("org.rocksdb:rocksdbjni:6.6.4")
-    testCompile("io.netty:netty-buffer:4.1.45.Final")
-
-//    api("junit:junit:4.12")
-//    implementation("junit:junit:4.12")
-//    testImplementation("junit:junit:4.12")
+    testImplementation(kotlin("test-junit5", kotlinVersion))
+    testImplementation("org.junit.jupiter:junit-jupiter:5.6.2")
+    testImplementation("net.jqwik:jqwik:1.3.0")
+    testImplementation("org.fusesource.leveldbjni:leveldbjni-all:1.8")
+    testImplementation("org.rocksdb:rocksdbjni:6.8.1")
+    testImplementation("io.netty:netty-buffer:4.1.50.Final")
 }
 
 repositories {
     mavenCentral()
     jcenter()
+    maven ("https://dl.bintray.com/kotlin/kotlin-eap")
+    maven ("https://repo.spring.io/snapshot")
+    maven ("https://repo.spring.io/release")
+    flatDir {
+        dirs("libs")
+    }
 }
 
 configurations {
@@ -187,10 +198,24 @@ tasks {
         kotlinOptions.languageVersion = "1.3"
     }
 
-    withType(Test::class.java) {
+    withType<Test>().all {
+        jvmArgs = listOf("--enable-preview")
         testLogging.showStandardStreams = true
         testLogging.showExceptions = true
         useJUnitPlatform {
         }
+    }
+
+    withType<JavaExec>().all {
+        jvmArgs = listOf("--enable-preview")
+    }
+
+    withType<Wrapper>().all {
+        gradleVersion = "6.4.1"
+        distributionType = Wrapper.DistributionType.BIN
+    }
+
+    withType<JavaCompile>().all {
+        options.compilerArgs.addAll(listOf("--enable-preview", "-Xlint:preview"))
     }
 }

@@ -8,6 +8,9 @@ import io.netty.buffer.ByteBuf
 import io.netty.buffer.ByteBufUtil
 import io.netty.buffer.PooledByteBufAllocator
 import io.netty.buffer.Unpooled
+import java.math.BigDecimal
+import java.math.BigInteger
+import java.time.*
 import javax.crypto.Cipher
 
 inline fun <R> ByteBuf.use(block: (ByteBuf) -> R): R {
@@ -70,23 +73,6 @@ interface ByteBufSerializer<T> : ByteBufEncoder<T>, ByteBufDecoder<T> {
         }
     }
 
-//    @JvmDefault
-//    fun toByteArraySerializer(): ByteArraySerializer<T> = object : ByteArraySerializer<T> {
-//        override fun encode(value: T): ByteArray {
-//            PooledByteBufAllocator.DEFAULT.heapBuffer().use { buf ->
-//                this@ByteBufSerializer.encode(value, buf)
-//                val res = ByteArray(buf.readableBytes())
-//                buf.readBytes(res)
-//                return res
-//            }
-//        }
-//
-//        override fun decode(value: ByteArray): T {
-//            val buf = Unpooled.wrappedBuffer(value)
-//            return this@ByteBufSerializer.decode(buf)
-//        }
-//    }
-
     companion object {
         @JvmField
         val boolSerializer = object : ByteBufSerializer<Boolean> {
@@ -100,35 +86,47 @@ interface ByteBufSerializer<T> : ByteBufEncoder<T>, ByteBufDecoder<T> {
         }
 
         @JvmField
-        val byteSerializer = object : ByteBufSerializer<Int> {
-            override fun encode(value: Int, out: ByteBuf) {
-                out.writeByte(value)
+        val byteSerializer = object : ByteBufSerializer<Byte> {
+            override fun encode(value: Byte, out: ByteBuf) {
+                out.writeByte(value.toInt())
             }
 
-            override fun decode(input: ByteBuf): Int {
-                return input.readByte().toInt()
-            }
-        }
-
-        @JvmField
-        val shortSerializer = object : ByteBufSerializer<Int> {
-            override fun encode(value: Int, out: ByteBuf) {
-                out.writeShort(value)
+            override fun decode(input: ByteBuf): Byte {
+                return input.readByte()
             }
 
-            override fun decode(input: ByteBuf): Int {
-                return input.readShort().toInt()
+            fun castToInt(): ByteBufSerializer<Int> {
+                return this.bimap(Int::toByte, Byte::toInt)
             }
         }
 
         @JvmField
-        val shortSerializerLE = object : ByteBufSerializer<Int> {
-            override fun encode(value: Int, out: ByteBuf) {
-                out.writeShortLE(value)
+        val shortSerializer = object : ByteBufSerializer<Short> {
+            override fun encode(value: Short, out: ByteBuf) {
+                out.writeShort(value.toInt())
             }
 
-            override fun decode(input: ByteBuf): Int {
-                return input.readShortLE().toInt()
+            override fun decode(input: ByteBuf): Short {
+                return input.readShort()
+            }
+
+            fun castToInt(): ByteBufSerializer<Int> {
+                return this.bimap(Int::toShort, Short::toInt)
+            }
+        }
+
+        @JvmField
+        val shortSerializerLE = object : ByteBufSerializer<Short> {
+            override fun encode(value: Short, out: ByteBuf) {
+                out.writeShortLE(value.toInt())
+            }
+
+            override fun decode(input: ByteBuf): Short {
+                return input.readShortLE()
+            }
+
+            fun castToInt(): ByteBufSerializer<Int> {
+                return this.bimap(Int::toShort, Short::toInt)
             }
         }
 
@@ -199,6 +197,50 @@ interface ByteBufSerializer<T> : ByteBufEncoder<T>, ByteBufDecoder<T> {
         }
 
         @JvmField
+        val floatSerializer = object : ByteBufSerializer<Float> {
+            override fun encode(value: Float, out: ByteBuf) {
+                out.writeFloat(value)
+            }
+
+            override fun decode(input: ByteBuf): Float {
+                return input.readFloat()
+            }
+        }
+
+        @JvmField
+        val floatSerializerLE = object : ByteBufSerializer<Float> {
+            override fun encode(value: Float, out: ByteBuf) {
+                out.writeFloatLE(value)
+            }
+
+            override fun decode(input: ByteBuf): Float {
+                return input.readFloatLE()
+            }
+        }
+
+        @JvmField
+        val doubleSerializer = object : ByteBufSerializer<Double> {
+            override fun encode(value: Double, out: ByteBuf) {
+                out.writeDouble(value)
+            }
+
+            override fun decode(input: ByteBuf): Double {
+                return input.readDouble()
+            }
+        }
+
+        @JvmField
+        val doubleSerializerLE = object : ByteBufSerializer<Double> {
+            override fun encode(value: Double, out: ByteBuf) {
+                out.writeDoubleLE(value)
+            }
+
+            override fun decode(input: ByteBuf): Double {
+                return input.readDoubleLE()
+            }
+        }
+
+        @JvmField
         val utf8Serializer = object : ByteBufSerializer<String> {
             override fun encode(value: String, out: ByteBuf) {
                 out.writeCharSequence(value, Charsets.UTF_8)
@@ -236,6 +278,53 @@ interface ByteBufSerializer<T> : ByteBufEncoder<T>, ByteBufDecoder<T> {
             }
         }
 
+        @JvmField
+        val bigIntSerializer = byteArraySerializer.bimap(BigInteger::toByteArray, ::BigInteger)
+
+        private class BigDecimalSerializer : ByteBufSerializer<BigDecimal> {
+            override fun encode(value: BigDecimal, out: ByteBuf) {
+                bigIntSerializer.encode(value.unscaledValue(), out)
+                out.writeInt(value.scale())
+            }
+
+            override fun decode(input: ByteBuf): BigDecimal {
+                return BigDecimal(bigIntSerializer.decode(input), input.readInt())
+            }
+        }
+
+        @JvmField
+        val bigDecimalSerializer: ByteBufSerializer<BigDecimal> = BigDecimalSerializer()
+
+        @JvmField
+        val instantSerializer = longSerializer.bimap(Instant::toEpochMilli, { millis -> Instant.ofEpochMilli(millis) })
+
+        @JvmField
+        val instantSerializerLE = longSerializerLE.bimap(Instant::toEpochMilli, { millis -> Instant.ofEpochMilli(millis) })
+
+        private class LocalDateTimeSerializer(private val ser: ByteBufSerializer<Instant>): ByteBufSerializer<LocalDateTime> {
+            private val utc = ZoneId.of("UTC")
+
+            override fun encode(value: LocalDateTime, out: ByteBuf) {
+                ser.encode(value.toInstant(ZoneOffset.UTC), out)
+            }
+
+            override fun decode(input: ByteBuf): LocalDateTime {
+                return LocalDateTime.ofInstant(ser.decode(input), ZoneId.of("UTC"))
+            }
+        }
+
+        @JvmField
+        val localDateTimeSerializer: ByteBufSerializer<LocalDateTime> = LocalDateTimeSerializer(instantSerializer)
+
+        @JvmField
+        val localDateTimeSerializerLE: ByteBufSerializer<LocalDateTime> = LocalDateTimeSerializer(instantSerializerLE)
+
+        @JvmField
+        val localDateSerializer = longSerializer.bimap(LocalDate::toEpochDay, LocalDate::ofEpochDay)
+
+        @JvmField
+        val localDateSerializerLE = longSerializerLE.bimap(LocalDate::toEpochDay, LocalDate::ofEpochDay)
+
         @JvmStatic
         fun <T> listSerializer(sizeSer: ByteBufSerializer<Int>, itemSer: ByteBufSerializer<T>): ByteBufSerializer<List<T>> {
             return object : ByteBufSerializer<List<T>> {
@@ -250,6 +339,27 @@ interface ByteBufSerializer<T> : ByteBufEncoder<T>, ByteBufDecoder<T> {
                     val res = ArrayList<T>(size)
                     for (i in 0 until size)
                         res.add(itemSer.decode(input))
+                    return res
+                }
+            }
+        }
+
+        @JvmStatic
+        fun <T> setSerializer(sizeSer: ByteBufSerializer<Int>, itemSer: ByteBufSerializer<T>): ByteBufSerializer<Set<T>> {
+            return object : ByteBufSerializer<Set<T>> {
+                override fun encode(value: Set<T>, out: ByteBuf) {
+                    sizeSer.encode(value.size, out)
+                    for (item in value)
+                        itemSer.encode(item, out)
+                }
+
+                override fun decode(input: ByteBuf): Set<T> {
+                    val size = sizeSer.decode(input)
+                    val res = mutableSetOf<T>()
+                    for (i in 0 until size)
+                        res.add(itemSer.decode(input))
+
+                    assert(res.size == size)
                     return res
                 }
             }
@@ -274,6 +384,8 @@ interface ByteBufSerializer<T> : ByteBufEncoder<T>, ByteBufDecoder<T> {
                         val value = vm.decode(input)
                         res[key] = value
                     }
+
+                    assert(res.size == size)
                     return res
                 }
             }
