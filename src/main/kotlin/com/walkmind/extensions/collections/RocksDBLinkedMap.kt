@@ -62,15 +62,15 @@ class RocksDBLinkedMap<K, V>(
         private val batch = WriteBatch()
 
         override fun put(key: K, value: V) {
-            batch.put(p.keySerializer.encodeToArray(key), p.valueSerializer.encodeToArray(value))
+            batch.put(p.keySerializer.encode(key), p.valueSerializer.encode(value))
         }
 
         override fun merge(key: K, value: V) {
-            batch.merge(p.keySerializer.encodeToArray(key), p.valueSerializer.encodeToArray(value))
+            batch.merge(p.keySerializer.encode(key), p.valueSerializer.encode(value))
         }
 
         override fun remove(key: K) {
-            batch.delete(p.keySerializer.encodeToArray(key))
+            batch.delete(p.keySerializer.encode(key))
         }
 
         override fun clear() {
@@ -195,7 +195,7 @@ class RocksDBLinkedMap<K, V>(
 
         WriteBatch().use { batch ->
             for ((key, value) in from)
-                batch.put(keySerializer.encodeToArray(key), valueSerializer.encodeToArray(value))
+                batch.put(keySerializer.encode(key), valueSerializer.encode(value))
 
             db.write(writeOptions, batch)
         }
@@ -221,7 +221,7 @@ class RocksDBLinkedMap<K, V>(
 
         WriteBatch().use { batch ->
             for ((key, value) in from)
-                batch.merge(keySerializer.encodeToArray(key), valueSerializer.encodeToArray(value))
+                batch.merge(keySerializer.encode(key), valueSerializer.encode(value))
 
             db.write(writeOptions, batch)
         }
@@ -237,7 +237,7 @@ class RocksDBLinkedMap<K, V>(
     }
 
     override fun removeRange(keyFrom: K, keyTo: K) {
-        db.deleteRange(writeOptions, keySerializer.encodeToArray(keyFrom), keySerializer.encodeToArray(keyTo))
+        db.deleteRange(writeOptions, keySerializer.encode(keyFrom), keySerializer.encode(keyTo))
     }
 
     override fun firstKey(): K? {
@@ -280,7 +280,7 @@ class RocksDBLinkedMap<K, V>(
                 if (start == null)
                     it.seekToFirst()
                 else
-                    it.seek(keySerializer.encodeToArray(start))
+                    it.seek(keySerializer.encode(start))
             }
 
             override fun hasNext(): Boolean {
