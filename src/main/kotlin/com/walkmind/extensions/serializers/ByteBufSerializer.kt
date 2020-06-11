@@ -377,16 +377,15 @@ interface ByteBufSerializer<T> : ByteBufEncoder<T>, ByteBufDecoder<T> {
         @JvmField
         val instant64L = long64L.bimap("Instant64L", Instant::toEpochMilli, { millis -> Instant.ofEpochMilli(millis) })
 
-        @JvmField
-        val instant96: ByteBufSerializer<Instant> = object : ByteBufSerializer<Instant> {
+        private class InstantSerializer96(private val long64ser: ByteBufSerializer<Long>, private val int32ser: ByteBufSerializer<Int>) : ByteBufSerializer<Instant> {
             override fun encode(value: Instant, out: ByteBuf) {
-                long64.encode(value.epochSecond)
-                int32.encode(value.nano)
+                long64ser.encode(value.epochSecond, out)
+                int32ser.encode(value.nano, out)
             }
 
             override fun decode(input: ByteBuf): Instant {
-                val epochSecond = long64.decode(input)
-                val nano = int32.decode(input)
+                val epochSecond = long64ser.decode(input)
+                val nano = int32ser.decode(input)
                 return Instant.ofEpochSecond(epochSecond, nano.toLong())
             }
 
@@ -395,21 +394,10 @@ interface ByteBufSerializer<T> : ByteBufEncoder<T>, ByteBufDecoder<T> {
         }
 
         @JvmField
-        val instant96L: ByteBufSerializer<Instant> = object : ByteBufSerializer<Instant> {
-            override fun encode(value: Instant, out: ByteBuf) {
-                long64L.encode(value.epochSecond)
-                int32L.encode(value.nano)
-            }
+        val instant96: ByteBufSerializer<Instant> = InstantSerializer96(long64, int32)
 
-            override fun decode(input: ByteBuf): Instant {
-                val epochSecond = long64L.decode(input)
-                val nano = int32L.decode(input)
-                return Instant.ofEpochSecond(epochSecond, nano.toLong())
-            }
-
-            override val isBounded: Boolean = true
-            override val name: String = "Instant96L"
-        }
+        @JvmField
+        val instant96L: ByteBufSerializer<Instant> = InstantSerializer96(long64L, int32L)
 
         private class LocalDateTimeSerializer(private val ser: ByteBufSerializer<Instant>) : ByteBufSerializer<LocalDateTime> {
             private val utc = ZoneId.of("UTC")
