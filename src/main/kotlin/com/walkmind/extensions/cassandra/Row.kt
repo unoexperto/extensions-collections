@@ -32,6 +32,9 @@ data class Row(val columns: List<Cell>, val localDeletionTime: Int = Int.MAX_VAL
 
                 return Row(items, localDeletionTime, markedForDeleteAt)
             }
+
+            override val isBounded: Boolean = true
+            override val name: String = "Row"
         }
     }
 

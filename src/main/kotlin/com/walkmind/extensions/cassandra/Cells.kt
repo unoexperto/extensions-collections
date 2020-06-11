@@ -76,6 +76,8 @@ interface Cell {
                             throw RuntimeException("Unknown Cassandra value flag: $flags")
             }
 
+            override val isBounded: Boolean = true
+            override val name: String = "Cell"
         }
     }
 

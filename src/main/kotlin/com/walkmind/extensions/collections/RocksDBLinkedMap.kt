@@ -104,7 +104,7 @@ class RocksDBLinkedMap<K, V>(
                 .setCompactionStyle(CompactionStyle.LEVEL)
                 .setNumLevels(compressionLevels.size)
 //                .setCompactionPriority()
-                .setMaxBackgroundCompactions(20)
+//                .setMaxBackgroundCompactions(20)
                 .setCompressionPerLevel(compressionLevels)
                 .setMaxLogFileSize(64 * SizeUnit.MB)
 //                .setWriteBufferSize(512 * SizeUnit.MB) // default is 64M

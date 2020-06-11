@@ -28,7 +28,7 @@ val publicationName = "DefaultPublication"
 
 project.group = "com.walkmind.extensions"
 val artifactID = "collections"
-project.version = "1.13"
+project.version = "1.16"
 val licenseName = "Apache-2.0"
 val licenseUrl = "http://opensource.org/licenses/apache-2.0"
 val repoHttpsUrl = "https://github.com/unoexperto/extensions-collections.git"
@@ -199,7 +199,7 @@ tasks {
     }
 
     withType<Test>().all {
-        jvmArgs = listOf("--enable-preview")
+//        jvmArgs = listOf("--enable-preview")
         testLogging.showStandardStreams = true
         testLogging.showExceptions = true
         useJUnitPlatform {
@@ -207,7 +207,7 @@ tasks {
     }
 
     withType<JavaExec>().all {
-        jvmArgs = listOf("--enable-preview")
+//        jvmArgs = listOf("--enable-preview")
     }
 
     withType<Wrapper>().all {
@@ -216,6 +216,6 @@ tasks {
     }
 
     withType<JavaCompile>().all {
-        options.compilerArgs.addAll(listOf("--enable-preview", "-Xlint:preview"))
+//        options.compilerArgs.addAll(listOf("--enable-preview", "-Xlint:preview"))
     }
 }
