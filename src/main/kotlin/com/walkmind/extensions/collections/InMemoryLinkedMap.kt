@@ -80,11 +80,15 @@ class InMemoryLinkedMap<K, V> : LinkedMap<K, V>, Closeable, Destroyable {
     private fun iteratorInternal(start: K?): CloseablePeekingIterator<Pair<K, V>> {
 
         return object : CloseablePeekingIterator<Pair<K, V>> {
-            private val iter: Iterator<MutableMap.MutableEntry<K, V>>
+            private val iter: Iterator<Map.Entry<K, V>>
             private var peeked: Pair<K, V>? = null
 
             init {
-                iter = map.subMap(map.firstKey(), true, map.lastKey(), true).iterator()
+                iter = if (map.isNotEmpty())
+                    map.subMap(map.firstKey(), true, map.lastKey(), true).iterator()
+                else
+                    emptyMap<K, V>().iterator()
+
                 if (start != null) {
                     while (iter.hasNext()) {
                         val pair = iter.next().toPair()

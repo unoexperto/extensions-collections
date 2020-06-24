@@ -26,7 +26,7 @@ class LinkedMapTest {
         println(path.absolutePath)
         val instance =
                 when (clazz) {
-                    RocksDBLinkedMap::class.java -> RocksDBLinkedMap(path, null, true, ByteBufSerializer.utf8Sized, ByteBufSerializer.long64)
+                    RocksDBLinkedMap::class.java -> RocksDBLinkedMap(path, null, true, ByteBufSerializer.utf8, ByteBufSerializer.long64)
                     LevelDBLinkedMap::class.java -> LevelDBLinkedMap(path, null, DefaultStringSerializer, DefaultLongSerializer)
                     InMemoryLinkedMap::class.java -> InMemoryLinkedMap(
                             { value, prefix ->
