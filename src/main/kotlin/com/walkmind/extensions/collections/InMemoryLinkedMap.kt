@@ -118,7 +118,7 @@ class InMemoryLinkedMap<K, V> : LinkedMap<K, V>, Closeable, Destroyable {
             }
 
             override fun hasNext(): Boolean {
-                return iter.hasNext()
+                return peeked != null || iter.hasNext()
             }
 
             private fun nextReal(): Pair<K, V>? {

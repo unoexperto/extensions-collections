@@ -97,6 +97,27 @@ class LinkedMapTest {
 
     @ParameterizedTest
     @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class, InMemoryLinkedMap::class])
+    fun peekDoesntAdvanceIterator(clazz: Class<*>) {
+        createAndUseDb(clazz) { map ->
+            fillMap(map)
+
+            val items = mutableListOf<Pair<String, Long>>()
+            map.iterator().use {
+
+                while (it.hasNext()) {
+                    items.add(it.next())
+                    if (it.hasNext())
+                        it.peek()
+                }
+
+                // It must not be tailing iterator
+                Assertions.assertEquals(items.map { it.first }.toSet(), testData.keys)
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(classes = [RocksDBLinkedMap::class, LevelDBLinkedMap::class, InMemoryLinkedMap::class])
     fun checkIsEmpty(clazz: Class<*>) {
         createAndUseDb(clazz) { map ->
             Assertions.assertTrue(map.isEmpty())
