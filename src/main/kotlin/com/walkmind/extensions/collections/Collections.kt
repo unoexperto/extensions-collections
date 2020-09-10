@@ -19,7 +19,7 @@ interface CloseableIterator<out T> : Iterator<T>, AutoCloseable
 interface CloseablePeekingIterator<out T> : PeekingIterator<T>, AutoCloseable
 
 interface MapWriteOps<K, V> {
-    fun put(key: K, value: V)
+    fun put(key: K, value: V): Int
     fun merge(key: K, value: V)
     fun remove(key: K)
     fun clear()

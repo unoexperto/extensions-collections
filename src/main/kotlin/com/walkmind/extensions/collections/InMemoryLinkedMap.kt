@@ -30,8 +30,9 @@ class InMemoryLinkedMap<K, V> : LinkedMap<K, V>, Closeable, Destroyable {
         this.prefixMatcher = prefixMatcher
     }
 
-    override fun put(key: K, value: V) {
+    override fun put(key: K, value: V): Int {
         map.put(key, value)
+        return 0
     }
 
     override fun merge(key: K, value: V) {
