@@ -323,6 +323,10 @@ class RocksDBLinkedMap<K, V>(
         }
     }
 
+    fun checkpoint(): Checkpoint {
+        return Checkpoint.create(db);
+    }
+
     override fun close() {
         db.close()
     }
