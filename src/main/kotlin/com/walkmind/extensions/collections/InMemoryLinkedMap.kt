@@ -78,6 +78,10 @@ class InMemoryLinkedMap<K, V> : LinkedMap<K, V>, Closeable, Destroyable {
         return map.lastKey()
     }
 
+    override fun lastKey(start: K): K? {
+        throw UnsupportedOperationException()
+    }
+
     private fun iteratorInternal(start: K?): CloseablePeekingIterator<Pair<K, V>> {
 
         return object : CloseablePeekingIterator<Pair<K, V>> {

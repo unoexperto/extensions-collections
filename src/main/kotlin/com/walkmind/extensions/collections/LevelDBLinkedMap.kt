@@ -209,6 +209,10 @@ class LevelDBLinkedMap<K, V>(private val path: File,
         }
     }
 
+    override fun lastKey(start: K): K? {
+        throw UnsupportedOperationException()
+    }
+
     override fun iterator(): CloseablePeekingIterator<Pair<K, V>> {
         return iteratorInternal(null)
     }

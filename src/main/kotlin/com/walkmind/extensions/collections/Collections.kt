@@ -33,6 +33,7 @@ interface LinkedMap<K, V> : MapWriteOps<K, V> {
     fun removeRange(keyFrom: K, keyTo: K)
     fun firstKey(): K?
     fun lastKey(): K?
+    fun lastKey(start: K): K?
 
     // Existing iterators should work after modification of the map
     fun iterator(): CloseablePeekingIterator<Pair<K, V>>

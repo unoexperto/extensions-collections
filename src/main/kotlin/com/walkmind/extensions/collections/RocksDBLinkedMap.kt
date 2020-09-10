@@ -267,6 +267,17 @@ class RocksDBLinkedMap<K, V>(
         }
     }
 
+    override fun lastKey(start: K): K? {
+        db.newIterator(readOptions).use {
+            it.seekForPrev(keySerializer.encode(start));
+
+            return if (it.isValid)
+                Unpooled.wrappedBuffer(it.key()).use(keySerializer::decode)
+            else
+                null
+        }
+    }
+
     override fun iterator(): CloseablePeekingIterator<Pair<K, V>> {
         return iteratorInternal(null)
     }
