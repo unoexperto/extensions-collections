@@ -71,11 +71,19 @@ class InMemoryLinkedMap<K, V> : LinkedMap<K, V>, Closeable, Destroyable {
     }
 
     override fun firstKey(): K? {
-        return map.firstKey()
+        return try {
+            map.firstKey()
+        } catch (e: NoSuchElementException) {
+            null
+        }
     }
 
     override fun lastKey(): K? {
-        return map.lastKey()
+        return try {
+            map.lastKey()
+        } catch (e: NoSuchElementException) {
+            null
+        }
     }
 
     override fun lastKey(start: K): K? {
