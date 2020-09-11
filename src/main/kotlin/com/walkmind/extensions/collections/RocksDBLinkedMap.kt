@@ -278,6 +278,10 @@ class RocksDBLinkedMap<K, V>(
         }
     }
 
+    fun compact() {
+        db.compactRange()
+    }
+
     override fun iterator(): CloseablePeekingIterator<Pair<K, V>> {
         return iteratorInternal(null)
     }
