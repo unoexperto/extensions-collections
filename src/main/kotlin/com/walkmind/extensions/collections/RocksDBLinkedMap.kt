@@ -338,8 +338,10 @@ class RocksDBLinkedMap<K, V>(
         }
     }
 
-    fun checkpoint(): Checkpoint {
-        return Checkpoint.create(db);
+    fun createCheckpoint(path: String) {
+        Checkpoint.create(db).use {
+            it.createCheckpoint(path)
+        }
     }
 
     override fun close() {
