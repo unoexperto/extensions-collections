@@ -30,8 +30,9 @@ class InMemoryLinkedMap<K, V> : LinkedMap<K, V>, Closeable, Destroyable {
         this.prefixMatcher = prefixMatcher
     }
 
-    override fun put(key: K, value: V) {
+    override fun put(key: K, value: V): Int {
         map.put(key, value)
+        return 0
     }
 
     override fun merge(key: K, value: V) {
@@ -70,11 +71,23 @@ class InMemoryLinkedMap<K, V> : LinkedMap<K, V>, Closeable, Destroyable {
     }
 
     override fun firstKey(): K? {
-        return map.firstKey()
+        return try {
+            map.firstKey()
+        } catch (e: NoSuchElementException) {
+            null
+        }
     }
 
     override fun lastKey(): K? {
-        return map.lastKey()
+        return try {
+            map.lastKey()
+        } catch (e: NoSuchElementException) {
+            null
+        }
+    }
+
+    override fun lastKey(start: K): K? {
+        throw UnsupportedOperationException()
     }
 
     private fun iteratorInternal(start: K?): CloseablePeekingIterator<Pair<K, V>> {

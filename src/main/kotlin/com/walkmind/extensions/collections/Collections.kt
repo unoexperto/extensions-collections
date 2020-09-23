@@ -19,7 +19,7 @@ interface CloseableIterator<out T> : Iterator<T>, AutoCloseable
 interface CloseablePeekingIterator<out T> : PeekingIterator<T>, AutoCloseable
 
 interface MapWriteOps<K, V> {
-    fun put(key: K, value: V)
+    fun put(key: K, value: V): Int
     fun merge(key: K, value: V)
     fun remove(key: K)
     fun clear()
@@ -33,6 +33,7 @@ interface LinkedMap<K, V> : MapWriteOps<K, V> {
     fun removeRange(keyFrom: K, keyTo: K)
     fun firstKey(): K?
     fun lastKey(): K?
+    fun lastKey(start: K): K?
 
     // Existing iterators should work after modification of the map
     fun iterator(): CloseablePeekingIterator<Pair<K, V>>

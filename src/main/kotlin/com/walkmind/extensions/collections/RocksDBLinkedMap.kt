@@ -61,8 +61,10 @@ class RocksDBLinkedMap<K, V>(
 
         private val batch = WriteBatch()
 
-        override fun put(key: K, value: V) {
-            batch.put(p.keySerializer.encode(key), p.valueSerializer.encode(value))
+        override fun put(key: K, value: V): Int {
+            val valueByteArray = p.valueSerializer.encode(value)
+            batch.put(p.keySerializer.encode(key), valueByteArray)
+            return valueByteArray.size
         }
 
         override fun merge(key: K, value: V) {
@@ -175,7 +177,7 @@ class RocksDBLinkedMap<K, V>(
         }
     }
 
-    override fun put(key: K, value: V) {
+    override fun put(key: K, value: V): Int {
         DEFAULT.heapBuffer().use { bufK ->
             assert(bufK.isContiguous)
             keySerializer.encode(key, bufK)
@@ -184,9 +186,12 @@ class RocksDBLinkedMap<K, V>(
                 assert(bufV.isContiguous)
                 valueSerializer.encode(value, bufV)
 
+                val valueReadableBytes = bufV.readableBytes()
                 db.put(writeOptions,
                         bufK.array(), bufK.arrayOffset(), bufK.readableBytes(),
-                        bufV.array(), bufV.arrayOffset(), bufV.readableBytes())
+                        bufV.array(), bufV.arrayOffset(), valueReadableBytes)
+
+                return valueReadableBytes
             }
         }
     }
@@ -262,6 +267,21 @@ class RocksDBLinkedMap<K, V>(
         }
     }
 
+    override fun lastKey(start: K): K? {
+        db.newIterator(readOptions).use {
+            it.seekForPrev(keySerializer.encode(start));
+
+            return if (it.isValid)
+                Unpooled.wrappedBuffer(it.key()).use(keySerializer::decode)
+            else
+                null
+        }
+    }
+
+    fun compact() {
+        db.compactRange()
+    }
+
     override fun iterator(): CloseablePeekingIterator<Pair<K, V>> {
         return iteratorInternal(null)
     }
@@ -315,6 +335,12 @@ class RocksDBLinkedMap<K, V>(
                         Unpooled.wrappedBuffer(it.value()).use(valueSerializer::decode)
                 )
             }
+        }
+    }
+
+    fun createCheckpoint(path: String) {
+        Checkpoint.create(db).use {
+            it.createCheckpoint(path)
         }
     }
 

@@ -79,8 +79,10 @@ class LevelDBLinkedMap<K, V>(private val path: File,
 
         private val batch = p.db.createWriteBatch()
 
-        override fun put(key: K, value: V) {
-            batch.put(p.keySerializer.encode(key), p.valueSerializer.encode(value))
+        override fun put(key: K, value: V): Int {
+            val valueByteArray = p.valueSerializer.encode(value)
+            batch.put(p.keySerializer.encode(key), valueByteArray)
+            return valueByteArray.size
         }
 
         override fun merge(key: K, value: V) {
@@ -171,8 +173,10 @@ class LevelDBLinkedMap<K, V>(private val path: File,
             }
     }
 
-    override fun put(key: K, value: V) {
-        db.put(keySerializer.encode(key), valueSerializer.encode(value), writeOptions)
+    override fun put(key: K, value: V): Int {
+        val valueByteArray = valueSerializer.encode(value)
+        db.put(keySerializer.encode(key), valueByteArray, writeOptions)
+        return valueByteArray.size
     }
 
     override fun putAll(from: Iterable<Pair<K, V>>) {
@@ -203,6 +207,10 @@ class LevelDBLinkedMap<K, V>(private val path: File,
             it.seekToLast()
             return it.runCatching { keySerializer.decode(peekNext().key) }.getOrNull()
         }
+    }
+
+    override fun lastKey(start: K): K? {
+        throw UnsupportedOperationException()
     }
 
     override fun iterator(): CloseablePeekingIterator<Pair<K, V>> {
