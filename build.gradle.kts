@@ -28,7 +28,7 @@ val publicationName = "DefaultPublication"
 
 project.group = "com.walkmind.extensions"
 val artifactID = "collections"
-project.version = "1.19"
+project.version = "1.20"
 val licenseName = "Apache-2.0"
 val licenseUrl = "http://opensource.org/licenses/apache-2.0"
 val repoHttpsUrl = "https://github.com/unoexperto/extensions-collections.git"
@@ -93,6 +93,25 @@ fun MavenPom.addDependencies() = withXml {
 }
 
 publishing {
+    repositories {
+        maven {
+            url = uri("s3://walkmind-maven/")
+            credentials(AwsCredentials::class) {
+                val awsCreds = File(System.getProperty("user.home") + "/.aws/credentials")
+                        .readLines()
+                        .map { it.trim() }.filter { it.isNotEmpty() && it.first() != '[' && it.last() != ']' && it.contains("=") }
+                        .map {
+                            val (k, v) = it.split("=").map { it.trim() }
+                            k.toLowerCase() to v
+                        }
+                        .toMap()
+
+                accessKey = awsCreds["aws_access_key_id"]
+                secretKey = awsCreds["aws_secret_access_key"]
+//                sessionToken = "someSTSToken" // optional
+            }
+        }
+    }
     publications {
         create(publicationName, MavenPublication::class) {
             artifactId = artifactID
@@ -145,14 +164,14 @@ dependencies {
     implementation(kotlin("stdlib-jdk8", kotlinVersion))
     implementation(kotlin("reflect", kotlinVersion))
 
-    implementation("com.walkmind.extensions:serializers:1.0")
+    implementation("com.walkmind.extensions:serializers:1.2")
 
     compileOnly("org.fusesource.leveldbjni:leveldbjni-all:1.8")
     compileOnly("org.rocksdb:rocksdbjni:6.8.1")
     compileOnly("io.netty:netty-buffer:4.1.50.Final")
 
     testImplementation(kotlin("test-junit5", kotlinVersion))
-    testImplementation("com.walkmind.extensions:serializers:1.0")
+    testImplementation("com.walkmind.extensions:serializers:1.2")
     testImplementation("org.junit.jupiter:junit-jupiter:5.6.2")
     testImplementation("net.jqwik:jqwik:1.3.0")
     testImplementation("org.fusesource.leveldbjni:leveldbjni-all:1.8")
