@@ -11,7 +11,7 @@ import java.util.Properties
 val kotlinVersion = plugins.getPlugin(KotlinPluginWrapper::class.java).kotlinPluginVersion
 
 plugins {
-    kotlin("jvm") version "1.3.72"
+    kotlin("jvm") version "1.5.0-M1"
     id("java")
     idea
     id("com.github.johnrengelman.shadow") version "5.2.0"
@@ -28,7 +28,7 @@ val publicationName = "DefaultPublication"
 
 project.group = "com.walkmind.extensions"
 val artifactID = "collections"
-project.version = "1.20"
+project.version = "1.21"
 val licenseName = "Apache-2.0"
 val licenseUrl = "http://opensource.org/licenses/apache-2.0"
 val repoHttpsUrl = "https://github.com/unoexperto/extensions-collections.git"
@@ -164,24 +164,25 @@ dependencies {
     implementation(kotlin("stdlib-jdk8", kotlinVersion))
     implementation(kotlin("reflect", kotlinVersion))
 
-    implementation("com.walkmind.extensions:serializers:1.2")
+    implementation("com.walkmind.extensions:serializers:1.5")
 
     compileOnly("org.fusesource.leveldbjni:leveldbjni-all:1.8")
-    compileOnly("org.rocksdb:rocksdbjni:6.8.1")
-    compileOnly("io.netty:netty-buffer:4.1.50.Final")
+    compileOnly("org.rocksdb:rocksdbjni:6.15.5")
+    compileOnly("io.netty:netty-buffer:4.1.60.Final")
 
     testImplementation(kotlin("test-junit5", kotlinVersion))
-    testImplementation("com.walkmind.extensions:serializers:1.2")
+    testImplementation("com.walkmind.extensions:serializers:1.5")
     testImplementation("org.junit.jupiter:junit-jupiter:5.6.2")
     testImplementation("net.jqwik:jqwik:1.3.0")
     testImplementation("org.fusesource.leveldbjni:leveldbjni-all:1.8")
-    testImplementation("org.rocksdb:rocksdbjni:6.8.1")
-    testImplementation("io.netty:netty-buffer:4.1.50.Final")
+    testImplementation("org.rocksdb:rocksdbjni:6.15.5")
+    testImplementation("io.netty:netty-buffer:4.1.60.Final")
 }
 
 repositories {
     mavenCentral()
     jcenter()
+    maven(url = "https://walkmind-maven.s3.amazonaws.com/")
     maven ("https://dl.bintray.com/kotlin/kotlin-eap")
     maven ("https://dl.bintray.com/cppexpert/maven")
     maven ("https://repo.spring.io/snapshot")

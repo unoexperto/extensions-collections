@@ -3,8 +3,6 @@ import com.walkmind.extensions.collections.LevelDBLinkedMap
 import com.walkmind.extensions.collections.LinkedMap
 import com.walkmind.extensions.collections.RocksDBLinkedMap
 import com.walkmind.extensions.serializers.ByteBufSerializer
-import com.walkmind.extensions.serializers.DefaultLongSerializer
-import com.walkmind.extensions.serializers.DefaultStringSerializer
 import com.walkmind.extensions.misc.compareBytes
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.params.ParameterizedTest
@@ -27,7 +25,7 @@ class LinkedMapTest {
         val instance =
                 when (clazz) {
                     RocksDBLinkedMap::class.java -> RocksDBLinkedMap(path, null, true, ByteBufSerializer.utf8, ByteBufSerializer.long64)
-                    LevelDBLinkedMap::class.java -> LevelDBLinkedMap(path, null, DefaultStringSerializer, DefaultLongSerializer)
+                    LevelDBLinkedMap::class.java -> LevelDBLinkedMap(path, null, ByteBufSerializer.utf8, ByteBufSerializer.long64)
                     InMemoryLinkedMap::class.java -> InMemoryLinkedMap(
                             { value, prefix ->
                                 value.startsWith(prefix)

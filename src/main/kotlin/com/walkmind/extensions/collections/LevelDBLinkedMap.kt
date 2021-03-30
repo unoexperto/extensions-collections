@@ -1,7 +1,7 @@
 package com.walkmind.extensions.collections
 
-import com.walkmind.extensions.serializers.ByteArraySerializer
 import com.walkmind.extensions.misc.compareBytes
+import com.walkmind.extensions.serializers.ByteBufSerializer
 import org.fusesource.leveldbjni.JniDBFactory
 import org.iq80.leveldb.*
 import java.io.Closeable
@@ -69,8 +69,8 @@ class DefaultLevelDBComparator : DBComparator {
 
 class LevelDBLinkedMap<K, V>(private val path: File,
                              comparator: DBComparator?,
-                             private val keySerializer: ByteArraySerializer<K>,
-                             private val valueSerializer: ByteArraySerializer<V>,
+                             private val keySerializer: ByteBufSerializer<K>,
+                             private val valueSerializer: ByteBufSerializer<V>,
                              blockSize: Int = 64 * 1024,
                              private val deleteBatchSize: Int = 5 * 1024,
                              private val compressOnExit: Boolean = false) : LinkedMap<K, V>, MapBatchWriter<K, V>, Closeable, Destroyable {

@@ -7,38 +7,43 @@ import io.netty.buffer.ByteBuf
 
 // Making row thumbstone will force next merge() to act as put()
 // merge() will exclude columns whose timestamp is older than timestamp of thumbstone row!
-data class Row(val columns: List<Cell>, val localDeletionTime: Int = Int.MAX_VALUE, val markedForDeleteAt: Long = Long.MIN_VALUE) {
-
-    companion object {
-        val serializer = object : ByteBufSerializer<Row> {
-
-            // https://github.com/facebook/rocksdb/blob/v6.5.3/utilities/cassandra/format.cc#L233
-            override fun encode(value: Row, out: ByteBuf) {
-                out.writeInt(value.localDeletionTime)
-                out.writeLong(value.markedForDeleteAt)
-                value.columns.forEach { cell ->
-                    Cell.serializer.encode(cell, out)
-                }
-            }
-
-            override fun decode(input: ByteBuf): Row {
-                val localDeletionTime = input.readInt()
-                val markedForDeleteAt = input.readLong()
-                val items = mutableListOf<Cell>()
-                while (input.readableBytes() > 0) {
-                    val item = Cell.serializer.decode(input)
-                    items.add(item)
-                }
-
-                return Row(items, localDeletionTime, markedForDeleteAt)
-            }
-
-            override val isBounded: Boolean = true
-            override val name: String = "Row"
+data class Row<T>(
+    val columns: List<Cell<T>>,
+    val localDeletionTime: Int = Int.MAX_VALUE,
+    val markedForDeleteAt: Long = Long.MIN_VALUE
+) {
+    val isTombstone: Boolean
+        get() {
+            return markedForDeleteAt > Long.MIN_VALUE
         }
+}
+
+////
+
+class RowCodec<T>(codec: ByteBufSerializer<T>) : ByteBufSerializer<Row<T>> {
+
+    private val cellCodec = CellCodec(codec)
+
+    override val isBounded: Boolean = false
+    override val name: String = "Row"
+
+    // https://github.com/facebook/rocksdb/blob/v6.5.3/utilities/cassandra/format.cc#L233
+    override fun encode(value: Row<T>, out: ByteBuf) {
+        out.writeInt(value.localDeletionTime)
+        out.writeLong(value.markedForDeleteAt)
+        for (cell in value.columns)
+            cellCodec.encode(cell, out)
     }
 
-    fun isTombstone(): Boolean {
-        return markedForDeleteAt > Long.MIN_VALUE
+    override fun decode(input: ByteBuf): Row<T> {
+        val localDeletionTime = input.readInt()
+        val markedForDeleteAt = input.readLong()
+        val items = mutableListOf<Cell<T>>()
+        while (input.readableBytes() > 0) {
+            val item = cellCodec.decode(input)
+            items.add(item)
+        }
+
+        return Row(items, localDeletionTime, markedForDeleteAt)
     }
 }
